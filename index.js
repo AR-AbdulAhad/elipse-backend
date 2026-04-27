@@ -1,29 +1,47 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const contactRoutes = require('./src/routes/contactRoutes');
+const { connectDB } = require('./src/config/db');
 
-dotenv.config();
+// Route files
+const contactRoutes = require('./src/routes/contactRoutes');
+const authRoutes = require('./src/routes/authRoutes');
+const meetingRoutes = require('./src/routes/meetingRoutes');
+
+// Connect to Database
+connectDB();
+
+console.log(
+  '📑 Environment Check: ADMIN_EMAIL is set to:',
+  process.env.ADMIN_EMAIL || '(default)'
+);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
+// Request Logger
+app.use((req, res, next) => {
+  console.log(
+    `--- TEST --- [${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`
+  );
+  next();
+});
+
 // Routes
-app.use('/api', contactRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/meetings', meetingRoutes);
 
-// Basic route for health check
+// Health check
 app.get('/', (req, res) => {
-  res.send('Elipse Backend is running...');
+  res.send('Backend Server Status: OK (Prisma & MySQL Connected)');
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Server is successfully running on port ${PORT}`);
-});
-
-server.on('error', (error) => {
-  console.error('Server failed to start:', error);
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Backend listening on http://127.0.0.1:${PORT}`);
 });
