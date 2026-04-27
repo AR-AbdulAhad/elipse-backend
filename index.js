@@ -20,7 +20,12 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
-app.use(cors());
+// ✅ Enable ALL cors requests (required for hosting)
+app.use(cors({
+  origin: true,
+  credentials: true  // needed for cookies / auth tokens
+}));
+
 app.use(express.json());
 
 // Request Logger
