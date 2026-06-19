@@ -83,7 +83,7 @@ app.get('/status', (req, res) => {
 });
 
 // 4. Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 // 5. Serve other static files from root
 app.use(express.static(FRONTEND_BUILD, { maxAge: '1h' }));
