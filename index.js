@@ -12,6 +12,7 @@ const meetingRoutes = require('./src/routes/meetingRoutes');
 const blogRoutes = require('./src/routes/blogRoutes');
 const projectRoutes = require('./src/routes/projectRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
+const seedRoutes = require('./src/routes/seedRoutes');
 
 // Connect to Database
 connectDB();
@@ -22,7 +23,7 @@ console.log(
 );
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5003;
 
 // Path to frontend build
 const FRONTEND_BUILD = path.join(__dirname, '../frontend/dist');
@@ -95,6 +96,7 @@ app.use('/api/meetings', meetingRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/seed', seedRoutes);
 
 // 7. SPA Catch-all (Must be last)
 app.get('*', (req, res) => {

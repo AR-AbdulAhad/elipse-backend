@@ -50,6 +50,7 @@ model Project {
   title     String
   category  String
   image     String
+  video     String?
   path      String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -65,6 +66,9 @@ model Blog {
   image2    String?
   image3    String?
   image4    String?
+  video     String?
+  video2    String?
+  video3    String?
   category  String
   date      String
   createdAt DateTime @default(now())

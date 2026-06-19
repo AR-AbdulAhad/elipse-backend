@@ -2,14 +2,26 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const uploadDir = path.join(__dirname, '../../public/uploads/blogs');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const baseUploadDir = path.join(__dirname, '../../uploads');
+const blogsDir = path.join(baseUploadDir, 'blogs');
+const projectsDir = path.join(baseUploadDir, 'projects');
+
+[blogsDir, projectsDir].forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
+const getDestination = (req) => {
+  // Multer's destination runs before body fields are parsed, so we must read the type from the query string.
+  const type = req.query.type || 'blogs';
+  const dest = path.join(baseUploadDir, type);
+  console.log('📁  Destination for type', type, ':', dest);
+  return dest;
+};
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    // Use the query‑based getDestination helper.
+    cb(null, getDestination(req));
   },
   filename: (req, file, cb) => {
     const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -28,8 +40,16 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
 
 const uploadImage = (req, res) => {
-  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-  const url = `${req.protocol}://${req.get('host')}/uploads/blogs/${req.file.filename}`;
+  // Support both single file (req.file) and any file (req.files)
+  const file = req.file || (req.files && req.files[0]);
+  if (!file) return res.status(400).json({ message: 'No file uploaded' });
+  // Use query param for type (fallback to 'blogs') because body fields are not parsed yet.
+  const type = req.query.type || 'blogs';
+  console.log('🔍  Upload received. Type (query):', type);
+  console.log('🗂️  File info:', file);
+  console.log('🖼️  Saved to path:', file.path);
+  // Return a relative path; the frontend will prepend the backend origin.
+  const url = `/uploads/${type}/${file.filename}`;
   res.json({ url });
 };
 
