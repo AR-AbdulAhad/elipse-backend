@@ -28,11 +28,11 @@ const PORT = process.env.PORT || 5001;
 const FRONTEND_BUILD = path.join(__dirname, '../frontend/dist');
 
 // Middleware
-app.use(compression()); // Enable Gzip compression
+app.use(compression());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// 1. Caching Headers for Static Assets (Global Force Middleware)
+// 1. Caching Headers for Static Assets
 app.use((req, res, next) => {
   if (req.url.match(/\.(js|css|png|jpg|jpeg|gif|ico|webp|svg|woff2)$/)) {
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
@@ -41,19 +41,23 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/assets', express.static(path.join(FRONTEND_BUILD, 'assets'), {
-  maxAge: '1y',
-  immutable: true
-}));
+app.use(
+  '/assets',
+  express.static(path.join(FRONTEND_BUILD, 'assets'), {
+    maxAge: '1y',
+    immutable: true,
+  })
+);
 
-// 2. Explicit Routes for SEO (Fail-safe)
+// 2. Explicit Routes for SEO
 app.get('/robots.txt', (req, res) => {
   const robotsPath = path.join(FRONTEND_BUILD, 'robots.txt');
   res.type('text/plain');
   res.sendFile(robotsPath, (err) => {
     if (err) {
-      // Fallback if file is missing in dist
-      res.send("# Elipse Studio\nUser-agent: *\nAllow: /\n\nSitemap: https://elipsestudio.com/sitemap.xml");
+      res.send(
+        '# Elipse Studio\nUser-agent: *\nAllow: /\n\nSitemap: https://elipsestudio.com/sitemap.xml'
+      );
     }
   });
 });
@@ -63,19 +67,28 @@ app.get('/sitemap.xml', (req, res) => {
   res.type('application/xml');
   res.sendFile(sitemapPath, (err) => {
     if (err) {
-      // Basic fallback if sitemap is missing
       res.status(404).send('Sitemap not found. Please run build.');
     }
   });
 });
 
-// 3. Serve uploaded files
+// 3. Health Check Route
+app.get('/status', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: '✅ Server is running',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// 4. Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// 4. Serve other static files from root
+// 5. Serve other static files from root
 app.use(express.static(FRONTEND_BUILD, { maxAge: '1h' }));
 
-// 5. API Routes
+// 6. API Routes
 app.use('/api/contact', contactRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/meetings', meetingRoutes);
@@ -83,20 +96,21 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// 6. SPA Catch-all (Must be last)
-// This handles React Router paths by serving index.html
+// 7. SPA Catch-all (Must be last)
 app.get('*', (req, res) => {
-  if (req.url.startsWith('/api/')) return res.status(404).send('API endpoint not found');
-  
-  // Prevent caching for index.html to ensure users always get the latest version
+  if (req.url.startsWith('/api/')) {
+    return res.status(404).send('API endpoint not found');
+  }
+
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
+
   res.sendFile(path.join(FRONTEND_BUILD, 'index.html'));
 });
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Production Server listening on http://127.0.0.1:${PORT}`);
+  console.log(`✅ Health Check: http://127.0.0.1:${PORT}/status`);
 });
