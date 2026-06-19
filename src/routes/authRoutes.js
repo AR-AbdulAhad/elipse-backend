@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { authUser } = require('../controllers/authController');
+const { authUser, changePassword } = require('../controllers/authController');
+const { protect } = require('../middleware/authMiddleware');
 
 router.use((req, res, next) => {
   console.log('🛡️ Auth Route Access:', req.method, req.url);
@@ -8,7 +9,7 @@ router.use((req, res, next) => {
 });
 
 router.post('/login', authUser);
-
+router.put('/change-password', protect, changePassword);
 
 module.exports = router;
 
