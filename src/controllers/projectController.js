@@ -7,7 +7,7 @@ const getProjects = async (req, res) => {
     const prioritizedProjects = await prisma.project.findMany({ where: { path: { in: prioritizedPaths } } });
     const otherProjects = await prisma.project.findMany({ where: { path: { notIn: prioritizedPaths } }, orderBy: { createdAt: 'desc' } });
     const allProjects = [...prioritizedProjects, ...otherProjects];
-    const baseUrl = process.env.VITE_BACKEND_URL || (process.env.PORT ? `http://localhost:${process.env.PORT}` : 'http://localhost:5003');
+    const baseUrl = process.env.VITE_BACKEND_URL || (process.env.PORT ? `http://localhost:${process.env.PORT}` : 'https://mediumseagreen-crocodile-699024.hostingersite.com');
     const buildUrl = (val) => {
       if (!val) return val;
       if (val.startsWith('http')) return val;
@@ -30,7 +30,7 @@ const getProjectByPath = async (req, res) => {
     const path = req.query.path || req.params.path;
     const project = await prisma.project.findUnique({ where: { path } });
     if (!project) return res.status(404).json({ message: 'Project not found' });
-    const baseUrl = process.env.VITE_BACKEND_URL || (process.env.PORT ? `http://localhost:${process.env.PORT}` : 'http://localhost:5003');
+    const baseUrl = process.env.VITE_BACKEND_URL || (process.env.PORT ? `http://localhost:${process.env.PORT}` : 'https://mediumseagreen-crocodile-699024.hostingersite.com');
     const buildUrl = (val) => {
       if (!val) return val;
       if (val.startsWith('http')) return val;
