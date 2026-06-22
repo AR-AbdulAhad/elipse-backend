@@ -2,22 +2,26 @@ const prisma = require('../config/prisma');
 
 const getProjects = async (req, res) => {
   try {
-    const prioritizedPaths = ['/project/ahmed-food', '/project/volvo-configurator', '/project/lahore-zoo'];
-    // Fetch prioritized and other projects
-    const prioritizedProjects = await prisma.project.findMany({ where: { path: { in: prioritizedPaths } } });
-    const otherProjects = await prisma.project.findMany({ where: { path: { notIn: prioritizedPaths } }, orderBy: { createdAt: 'desc' } });
-    const allProjects = [...prioritizedProjects, ...otherProjects];
-    const baseUrl = process.env.VITE_BACKEND_URL || (process.env.PORT ? `http://localhost:${process.env.PORT}` : 'https://mediumseagreen-crocodile-699024.hostingersite.com');
+    const allProjects = await prisma.project.findMany({ orderBy: { position: 'asc' } });
+    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return val;
       if (val.startsWith('http')) return val;
       const path = val.startsWith('/') ? val : `/${val}`;
       return `${baseUrl}${path}`;
     };
+    const fixSections = (sections) => {
+      if (!sections) return sections;
+      try {
+        const arr = JSON.parse(sections);
+        return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
+      } catch { return sections; }
+    };
     const projectsWithUrls = allProjects.map(p => ({
       ...p,
       image: p.image ? buildUrl(p.image) : p.image,
       video: p.video ? buildUrl(p.video) : p.video,
+      sections: fixSections(p.sections),
     }));
     return res.json(projectsWithUrls);
   } catch (error) {
@@ -30,17 +34,25 @@ const getProjectByPath = async (req, res) => {
     const path = req.query.path || req.params.path;
     const project = await prisma.project.findUnique({ where: { path } });
     if (!project) return res.status(404).json({ message: 'Project not found' });
-    const baseUrl = process.env.VITE_BACKEND_URL || (process.env.PORT ? `http://localhost:${process.env.PORT}` : 'https://mediumseagreen-crocodile-699024.hostingersite.com');
+    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return val;
       if (val.startsWith('http')) return val;
       const path = val.startsWith('/') ? val : `/${val}`;
       return `${baseUrl}${path}`;
     };
+    const fixSections = (sections) => {
+      if (!sections) return sections;
+      try {
+        const arr = JSON.parse(sections);
+        return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
+      } catch { return sections; }
+    };
     const projectWithUrls = {
       ...project,
       image: project.image ? buildUrl(project.image) : project.image,
       video: project.video ? buildUrl(project.video) : project.video,
+      sections: fixSections(project.sections),
     };
     return res.json(projectWithUrls);
   } catch (error) {
@@ -50,12 +62,12 @@ const getProjectByPath = async (req, res) => {
 
 const createProject = async (req, res) => {
   try {
-    const { title, category, image, video, path } = req.body;
+    const { title, category, image, video, path, description, sections } = req.body;
     const normalize = (val) => {
       if (!val) return val;
-      // Remove origin if present, keep the /uploads/... path
       return val.replace(/^https?:\/\/[^/]+/, '');
     };
+    await prisma.project.updateMany({ data: { position: { increment: 1 } } });
     const project = await prisma.project.create({
       data: {
         title,
@@ -63,6 +75,9 @@ const createProject = async (req, res) => {
         image: normalize(image),
         video: normalize(video),
         path,
+        description: description || '',
+        sections: sections || '[]',
+        position: 0,
       }
     });
     res.status(201).json(project);
@@ -103,4 +118,23 @@ const deleteProject = async (req, res) => {
   }
 };
 
-module.exports = { getProjects, getProjectByPath, createProject, updateProject, deleteProject };
+const reorderProjects = async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ message: 'items array is required' });
+    }
+    for (const item of items) {
+      await prisma.project.update({
+        where: { id: parseInt(item.id) },
+        data: { position: parseInt(item.position) },
+      });
+    }
+    const allProjects = await prisma.project.findMany({ orderBy: { position: 'asc' } });
+    res.json(allProjects);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getProjects, getProjectByPath, createProject, updateProject, deleteProject, reorderProjects };

@@ -9,13 +9,20 @@ const normalize = (val) => {
 // Get all blogs with proper URLs
 const getBlogs = async (req, res) => {
   try {
-    const blogs = await prisma.blog.findMany();
-    const baseUrl = process.env.VITE_BACKEND_URL || (process.env.PORT ? `http://localhost:${process.env.PORT}` : 'http://localhost:5003');
+    const blogs = await prisma.blog.findMany({ orderBy: { createdAt: 'desc' } });
+    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return val;
       if (val.startsWith('http')) return val;
       const path = val.startsWith('/') ? val : `/${val}`;
       return `${baseUrl}${path}`;
+    };
+    const fixSections = (sections) => {
+      if (!sections) return sections;
+      try {
+        const arr = JSON.parse(sections);
+        return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
+      } catch { return sections; }
     };
     const blogsWithUrls = blogs.map(b => ({
       ...b,
@@ -23,6 +30,7 @@ const getBlogs = async (req, res) => {
       image2: b.image2 ? buildUrl(b.image2) : b.image2,
       image3: b.image3 ? buildUrl(b.image3) : b.image3,
       image4: b.image4 ? buildUrl(b.image4) : b.image4,
+      sections: fixSections(b.sections),
     }));
     res.json(blogsWithUrls);
   } catch (error) {
@@ -34,7 +42,28 @@ const getBlogBySlug = async (req, res) => {
   try {
     const blog = await prisma.blog.findUnique({ where: { slug: req.params.slug } });
     if (!blog) return res.status(404).json({ message: 'Blog not found' });
-    res.json(blog);
+    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`).replace(/\/+$/, '');
+    const buildUrl = (val) => {
+      if (!val) return val;
+      if (val.startsWith('http')) return val;
+      const path = val.startsWith('/') ? val : `/${val}`;
+      return `${baseUrl}${path}`;
+    };
+    const fixSections = (sections) => {
+      if (!sections) return sections;
+      try {
+        const arr = JSON.parse(sections);
+        return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
+      } catch { return sections; }
+    };
+    res.json({
+      ...blog,
+      image: blog.image ? buildUrl(blog.image) : blog.image,
+      image2: blog.image2 ? buildUrl(blog.image2) : blog.image2,
+      image3: blog.image3 ? buildUrl(blog.image3) : blog.image3,
+      image4: blog.image4 ? buildUrl(blog.image4) : blog.image4,
+      sections: fixSections(blog.sections),
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -47,6 +76,7 @@ const createBlog = async (req, res) => {
       slug,
       excerpt,
       content,
+      sections,
       image,
       image2,
       image3,
@@ -63,6 +93,7 @@ const createBlog = async (req, res) => {
         slug,
         excerpt,
         content,
+        sections: sections || '[]',
         image: normalize(image),
         image2: normalize(image2),
         image3: normalize(image3),

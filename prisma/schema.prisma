@@ -46,14 +46,17 @@ model Meeting {
 }
 
 model Project {
-  id        Int      @id @default(autoincrement())
-  title     String
-  category  String
-  image     String
-  video     String?
-  path      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  title       String
+  category    String
+  image       String
+  video       String?
+  path        String   @unique
+  description String   @default("") @db.Text
+  sections    String   @default("[]") @db.Text
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Blog {
@@ -62,6 +65,7 @@ model Blog {
   slug      String   @unique
   excerpt   String   @db.Text
   content   String   @db.Text
+  sections  String   @default("[]") @db.Text
   image     String
   image2    String?
   image3    String?
