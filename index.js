@@ -116,11 +116,33 @@ app.get('*', (req, res) => {
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
 
-  res.sendFile(path.join(FRONTEND_BUILD, 'index.html'));
+  const indexPath = path.join(FRONTEND_BUILD, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).send(`
+        <html>
+          <head><title>Frontend Build Not Found</title></head>
+          <body style="font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; max-width: 600px; margin: 0 auto; color: #333;">
+            <h1 style="color: #d9534f;">⚠️ Frontend Build Not Found</h1>
+            <p>The server is looking for the frontend build file at:</p>
+            <pre style="background: #f4f4f4; padding: 15px; border-radius: 4px; overflow-x: auto;">${indexPath}</pre>
+            <p><strong>Steps to fix:</strong></p>
+            <ol>
+              <li>Build the frontend locally (<code>npm run build</code> in the <code>frontend</code> folder).</li>
+              <li>Upload the resulting <code>dist</code> folder to Hostinger.</li>
+              <li>Ensure the folder is uploaded to the path shown above, or configure <code>FRONTEND_BUILD_PATH</code> in your <code>.env</code> file on Hostinger.</li>
+            </ol>
+          </body>
+        </html>
+      `);
+    }
+  });
 });
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Production Server listening on http://127.0.0.1:${PORT}`);
   console.log(`✅ Health Check: http://127.0.0.1:${PORT}/status`);
+  console.log(`📂 Frontend Build Path: ${FRONTEND_BUILD}`);
+  console.log(`📂 Frontend Build index.html exists: ${fs.existsSync(path.join(FRONTEND_BUILD, 'index.html'))}`);
 });
