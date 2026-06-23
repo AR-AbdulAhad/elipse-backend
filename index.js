@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const compression = require('compression');
+const cors = require('cors');
 const { connectDB } = require('./src/config/db');
 
 // Route files
@@ -27,16 +28,23 @@ const PORT = process.env.PORT || 5003;
 // ── Middleware ──────────────────────────────────────────────────────────────
 app.use(compression());
 
-// CORS — allow all origins so elipsestudio.com can reach this API
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204); // preflight — done
-  }
-  next();
-});
+// CORS — allow elipsestudio.com (and any origin) to reach this API
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    // and any browser origin
+    callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+};
+
+app.use(cors(corsOptions));
+
+// Explicitly handle preflight for all routes
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
