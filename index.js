@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const compression = require('compression');
+const fs = require('fs');
 const { connectDB } = require('./src/config/db');
 
 // Route files
@@ -25,8 +26,15 @@ console.log(
 const app = express();
 const PORT = process.env.PORT || 5003;
 
-// Path to frontend build
-const FRONTEND_BUILD = path.join(__dirname, '../frontend/dist');
+// Path to frontend build - check environment variable first, then fallback to local dist, then to sibling frontend/dist
+let FRONTEND_BUILD = path.join(__dirname, '../frontend/dist');
+if (process.env.FRONTEND_BUILD_PATH) {
+  FRONTEND_BUILD = path.isAbsolute(process.env.FRONTEND_BUILD_PATH)
+    ? process.env.FRONTEND_BUILD_PATH
+    : path.resolve(__dirname, process.env.FRONTEND_BUILD_PATH);
+} else if (fs.existsSync(path.join(__dirname, 'dist'))) {
+  FRONTEND_BUILD = path.join(__dirname, 'dist');
+}
 
 // Middleware
 app.use(compression());
