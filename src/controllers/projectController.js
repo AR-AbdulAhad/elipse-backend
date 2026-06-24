@@ -1,4 +1,25 @@
 const prisma = require('../config/prisma');
+const fs = require('fs');
+const path = require('path');
+
+const uploadsDir = path.join(__dirname, '../../uploads');
+
+const deleteProjectImageFiles = (record) => {
+  const paths = [];
+  if (record.image) {
+    paths.push(record.image.replace(/^https?:\/\/[^/]+/, ''));
+  }
+  try {
+    const sections = JSON.parse(record.sections || '[]');
+    sections.forEach((s) => {
+      if (s.image) paths.push(s.image.replace(/^https?:\/\/[^/]+/, ''));
+    });
+  } catch {}
+  paths.forEach((filePath) => {
+    const absPath = path.join(uploadsDir, filePath.replace(/^\/uploads\//, ''));
+    try { fs.unlinkSync(absPath); } catch {}
+  });
+};
 
 const getProjects = async (req, res) => {
   try {
@@ -62,7 +83,7 @@ const getProjectByPath = async (req, res) => {
 
 const createProject = async (req, res) => {
   try {
-    const { title, category, image, video, path, description, sections } = req.body;
+    const { title, metaTitle, metaDescription, category, image, video, path, description, sections } = req.body;
     const normalize = (val) => {
       if (!val) return val;
       return val.replace(/^https?:\/\/[^/]+/, '');
@@ -71,6 +92,8 @@ const createProject = async (req, res) => {
     const project = await prisma.project.create({
       data: {
         title,
+        metaTitle: metaTitle || null,
+        metaDescription: metaDescription || null,
         category,
         image: normalize(image),
         video: normalize(video),
@@ -111,7 +134,11 @@ const updateProject = async (req, res) => {
 
 const deleteProject = async (req, res) => {
   try {
-    await prisma.project.delete({ where: { id: parseInt(req.params.id) } });
+    const id = parseInt(req.params.id);
+    const project = await prisma.project.findUnique({ where: { id } });
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    deleteProjectImageFiles(project);
+    await prisma.project.delete({ where: { id } });
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

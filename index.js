@@ -120,8 +120,9 @@ app.get('/blog/:slug', async (req, res, next) => {
       return res.status(404).send(`<!DOCTYPE html><html><head><title>Not Found | Elipse Studio</title></head><body></body></html>`);
     }
 
-    const title = `${blog.title} | Elipse Studio`;
-    const desc = blog.excerpt || `Read ${blog.title} on Elipse Studio — immersive 3D, AR/VR and web configurator agency.`;
+    const seoTitle = blog.metaTitle || blog.title;
+    const title = `${seoTitle} | Elipse Studio`;
+    const desc = blog.metaDescription || blog.excerpt || `Read ${blog.title} on Elipse Studio — immersive 3D, AR/VR and web configurator agency.`;
     const image = buildUrl(blog.image);
     const pageUrl = `${siteUrl}/blog/${blog.slug}`;
 
@@ -161,6 +162,73 @@ app.get('/blog/:slug', async (req, res, next) => {
 </html>`);
   } catch (err) {
     console.error('Bot meta route error:', err);
+    return next();
+  }
+});
+
+// ── Social Bot: Dynamic Project Meta Tags ────────────────────────────────────
+app.get('/project/:path(*)', async (req, res, next) => {
+  const ua = req.headers['user-agent'] || '';
+  if (!isSocialBot(ua)) return next();
+
+  try {
+    const fullPath = '/project/' + req.params.path;
+    const project = await prisma.project.findUnique({ where: { path: fullPath } });
+
+    const siteUrl = 'https://elipsestudio.com';
+    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
+    const buildUrl = (val) => {
+      if (!val) return `${siteUrl}/assets/og-image.webp`;
+      if (val.startsWith('http')) return val;
+      return `${baseUrl}${val.startsWith('/') ? val : '/' + val}`;
+    };
+
+    if (!project) {
+      return res.status(404).send(`<!DOCTYPE html><html><head><title>Not Found | Elipse Studio</title></head><body></body></html>`);
+    }
+
+    const seoTitle = project.metaTitle || project.title;
+    const title = `${seoTitle} | Elipse Studio`;
+    const rawDesc = project.description ? project.description.replace(/<[^>]*>/g, '') : `Explore ${project.title} at Elipse Studio`;
+    const desc = project.metaDescription || rawDesc.slice(0, 160);
+    const image = buildUrl(project.image);
+    const pageUrl = `${siteUrl}${project.path}`;
+
+    const esc = (str = '') => String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${esc(title)}</title>
+  <meta name="description" content="${esc(desc)}" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:title"       content="${esc(title)}" />
+  <meta property="og:description" content="${esc(desc)}" />
+  <meta property="og:image"       content="${esc(image)}" />
+  <meta property="og:url"         content="${esc(pageUrl)}" />
+  <meta property="og:site_name"   content="Elipse Studio" />
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="${esc(title)}" />
+  <meta name="twitter:description" content="${esc(desc)}" />
+  <meta name="twitter:image"       content="${esc(image)}" />
+
+  <!-- Canonical -->
+  <link rel="canonical" href="${esc(pageUrl)}" />
+
+  <!-- Redirect real users to the SPA -->
+  <meta http-equiv="refresh" content="0;url=${esc(pageUrl)}" />
+</head>
+<body>
+  <p>Redirecting to <a href="${esc(pageUrl)}">${esc(title)}</a>…</p>
+</body>
+</html>`);
+  } catch (err) {
+    console.error('Project bot meta route error:', err);
     return next();
   }
 });

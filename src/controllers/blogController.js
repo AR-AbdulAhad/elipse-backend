@@ -1,4 +1,28 @@
 const prisma = require('../config/prisma');
+const fs = require('fs');
+const path = require('path');
+
+const uploadsDir = path.join(__dirname, '../../uploads');
+
+const deleteImageFiles = (record) => {
+  const imageFields = ['image', 'image2', 'image3', 'image4'];
+  const paths = [];
+  imageFields.forEach((field) => {
+    if (record[field]) {
+      paths.push(record[field].replace(/^https?:\/\/[^/]+/, ''));
+    }
+  });
+  try {
+    const sections = JSON.parse(record.sections || '[]');
+    sections.forEach((s) => {
+      if (s.image) paths.push(s.image.replace(/^https?:\/\/[^/]+/, ''));
+    });
+  } catch {}
+  paths.forEach((filePath) => {
+    const absPath = path.join(uploadsDir, filePath.replace(/^\/uploads\//, ''));
+    try { fs.unlinkSync(absPath); } catch {}
+  });
+};
 
 // Helper to strip any origin (e.g., http://localhost:5003) from stored paths
 const normalize = (val) => {
@@ -9,7 +33,7 @@ const normalize = (val) => {
 // Get all blogs with proper URLs
 const getBlogs = async (req, res) => {
   try {
-    const blogs = await prisma.blog.findMany({ orderBy: { createdAt: 'desc' } });
+    const blogs = await prisma.blog.findMany({ orderBy: { position: 'asc' } });
     const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return val;
@@ -73,6 +97,8 @@ const createBlog = async (req, res) => {
   try {
     const {
       title,
+      metaTitle,
+      metaDescription,
       slug,
       excerpt,
       content,
@@ -87,9 +113,12 @@ const createBlog = async (req, res) => {
       category,
       date,
     } = req.body;
+    await prisma.blog.updateMany({ data: { position: { increment: 1 } } });
     const blog = await prisma.blog.create({
       data: {
         title,
+        metaTitle: metaTitle || null,
+        metaDescription: metaDescription || null,
         slug,
         excerpt,
         content,
@@ -103,6 +132,7 @@ const createBlog = async (req, res) => {
         video3,
         category,
         date,
+        position: 0,
       },
     });
     res.status(201).json(blog);
@@ -134,11 +164,34 @@ const updateBlog = async (req, res) => {
 
 const deleteBlog = async (req, res) => {
   try {
-    await prisma.blog.delete({ where: { id: parseInt(req.params.id) } });
+    const id = parseInt(req.params.id);
+    const blog = await prisma.blog.findUnique({ where: { id } });
+    if (!blog) return res.status(404).json({ message: 'Blog not found' });
+    deleteImageFiles(blog);
+    await prisma.blog.delete({ where: { id } });
     res.json({ message: 'Blog deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { getBlogs, getBlogBySlug, createBlog, updateBlog, deleteBlog };
+const reorderBlogs = async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ message: 'items array is required' });
+    }
+    for (const item of items) {
+      await prisma.blog.update({
+        where: { id: parseInt(item.id) },
+        data: { position: parseInt(item.position) },
+      });
+    }
+    const allBlogs = await prisma.blog.findMany({ orderBy: { position: 'asc' } });
+    res.json(allBlogs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getBlogs, getBlogBySlug, createBlog, updateBlog, deleteBlog, reorderBlogs };
