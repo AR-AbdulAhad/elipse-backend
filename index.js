@@ -13,6 +13,8 @@ const blogRoutes = require('./src/routes/blogRoutes');
 const projectRoutes = require('./src/routes/projectRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
 const seedRoutes = require('./src/routes/seedRoutes');
+const reviewRoutes = require('./src/routes/reviewRoutes');
+const socialMediaRoutes = require('./src/routes/socialMediaRoutes');
 
 // Connect to Database
 connectDB();
@@ -93,6 +95,8 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/seed', seedRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/social-media', socialMediaRoutes);
 
 // ── Social Bot: Dynamic Blog Meta Tags ──────────────────────────────────────
 // When WhatsApp / Facebook / LinkedIn bots crawl a blog URL they get a

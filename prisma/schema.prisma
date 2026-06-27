@@ -61,6 +61,28 @@ model Project {
   updatedAt       DateTime @updatedAt
 }
 
+model Review {
+  id          Int      @id @default(autoincrement())
+  clientName  String
+  company     String?
+  projectName String?
+  projectLink String?
+  video       String
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SocialMedia {
+  id          Int      @id @default(autoincrement())
+  videoUrl    String
+  projectName String?
+  projectLink String?
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Blog {
   id              Int      @id @default(autoincrement())
   title           String

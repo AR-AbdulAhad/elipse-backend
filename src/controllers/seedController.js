@@ -97,6 +97,16 @@ const staticProjects = [
   { title: 'Qistmarket', category: 'Web', path: '/project/qistmarket', image: 'Qist-market.webp' },
  ];
 
+const staticReviews = [
+  { clientName: 'Tim Barth', company: 'Company Name', video: 'Tim Barth.mp4' },
+  { clientName: 'Hyper', company: 'Company Name', video: 'Hyper.mp4' },
+  { clientName: 'Aviv', company: 'Company Name', video: 'Aviv.mp4' },
+  { clientName: 'Ahmed', company: 'Company Name', video: 'Ahmed.mp4' },
+  { clientName: 'Abel Cm Marketing', company: 'Company Name', video: 'Abel Cm Marketing.mp4' },
+];
+
+const REVIEW_ASSETS = path.join(FRONTEND_ASSETS, 'review');
+
 const staticBlogs = [
   { title: 'Apparel Configurator for Fashion Brands in 2026: The Complete Guide', slug: 'apparel-configurator-fashion-brands-2026', category: 'Innovation', date: 'June 09, 2026', image: 'A (3) .webp', excerpt: 'Complete guide to apparel configurators for fashion brands in 2026.', content: '', video: 'Gabani.mp4' },
   { title: 'What Is Architectural Visualization? A Complete Guide for Property Developers', slug: 'architectural-visualization-guide', category: 'Real Estate', date: 'June 09, 2026', image: 'Artictecture.webp', excerpt: 'Complete guide to architectural visualization for property developers.', content: '', video: 'Volvo.mp4' },
@@ -126,6 +136,20 @@ const copyImages = () => {
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, dest);
       copied.push(filename);
+    }
+  }
+  // Copy review videos
+  if (fs.existsSync(REVIEW_ASSETS)) {
+    const reviewFiles = fs.readdirSync(REVIEW_ASSETS);
+    for (const file of reviewFiles) {
+      if (/\.(mp4|mov|avi|mkv|webm)$/i.test(file)) {
+        const src = path.join(REVIEW_ASSETS, file);
+        const dest = path.join(STATIC_DIR, file);
+        if (fs.existsSync(src) && !fs.existsSync(dest)) {
+          fs.copyFileSync(src, dest);
+          copied.push(file);
+        }
+      }
     }
   }
   return copied;
@@ -158,12 +182,22 @@ const seedStatic = async (req, res) => {
       blogsCreated++;
     }
 
+    let reviewsCreated = 0;
+    for (const r of staticReviews) {
+      const exists = await prisma.review.findFirst({ where: { clientName: r.clientName } });
+      if (exists) continue;
+      const videoUrl = `${baseUrl}/uploads/static/${r.video}`;
+      await prisma.review.create({ data: { clientName: r.clientName, company: r.company, video: videoUrl } });
+      reviewsCreated++;
+    }
+
     res.json({
       success: true,
       imagesCopied: copied.length,
       projectsCreated,
       blogsCreated,
-      message: `Seeded ${projectsCreated} projects and ${blogsCreated} blogs`
+      reviewsCreated,
+      message: `Seeded ${projectsCreated} projects, ${blogsCreated} blogs, ${reviewsCreated} reviews`
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

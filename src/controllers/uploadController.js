@@ -3,10 +3,9 @@ const path = require('path');
 const fs = require('fs');
 
 const baseUploadDir = path.join(__dirname, '../../uploads');
-const blogsDir = path.join(baseUploadDir, 'blogs');
-const projectsDir = path.join(baseUploadDir, 'projects');
 
-[blogsDir, projectsDir].forEach(dir => {
+['blogs', 'projects', 'reviews'].forEach(sub => {
+  const dir = path.join(baseUploadDir, sub);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
@@ -30,14 +29,14 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|gif|webp|svg|avif/;
+  const allowed = /jpeg|jpg|png|gif|webp|svg|avif|mp4|mov|avi|mkv|webm/;
   const ext = allowed.test(path.extname(file.originalname).toLowerCase());
   const mime = allowed.test(file.mimetype);
   if (ext || mime) cb(null, true);
-  else cb(new Error('Only image files are allowed'));
+  else cb(new Error('Only image and video files are allowed'));
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 200 * 1024 * 1024 } });
 
 const uploadImage = (req, res) => {
   // Support both single file (req.file) and any file (req.files)
