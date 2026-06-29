@@ -2,6 +2,8 @@ const prisma = require('../config/prisma');
 
 const normalize = (val) => {
   if (!val) return val;
+  // Keep YouTube URLs intact — they must remain full URLs for iframe embeds
+  if (val.includes('youtube.com') || val.includes('youtu.be')) return val;
   return val.replace(/^https?:\/\/[^/]+/, '');
 };
 
