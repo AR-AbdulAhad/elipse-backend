@@ -98,6 +98,85 @@ app.use('/api/seed', seedRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/social-media', socialMediaRoutes);
 
+// ── Social Bot: Static Pages Meta Tags ─────────────────────────────────────────
+const staticPagesMeta = {
+  about: {
+    title: "About Us | Elipse Studio",
+    desc: "Learn about Elipse Studio, our mission, and how we craft premium 3D visualizations, AR/VR experiences, and interactive web configurators.",
+  },
+  services: {
+    title: "Our Services | Elipse Studio",
+    desc: "Explore our range of interactive 3D web configurators, custom AR/VR development, architectural visualization, 3D animations, and custom website/app development.",
+  },
+  capabilities: {
+    title: "Our Capabilities | Elipse Studio",
+    desc: "Discover the cutting-edge tech stack, tools, and custom real-time 3D pipelines we leverage to build next-gen digital experiences.",
+  },
+  portfolio: {
+    title: "Portfolio | Elipse Studio",
+    desc: "Browse our showcase of premium interactive 3D apps, AR/VR solutions, animations, and high-fidelity visualizations built for global brands.",
+  },
+  'case-studies': {
+    title: "Case Studies | Elipse Studio",
+    desc: "Read detailed case studies showing how we help brands increase engagement and conversion rates through custom 3D web applications and AR/VR.",
+  },
+  contact: {
+    title: "Contact Us | Elipse Studio",
+    desc: "Get in touch with Elipse Studio. Let's discuss your next 3D, AR/VR, or web configurator project. Book a meeting or request a quote today.",
+  },
+  blog: {
+    title: "Blog & Insights | Elipse Studio",
+    desc: "Read the latest insights, trends, and guides on 3D configurators, AR marketing, VR training, and interactive web development.",
+  }
+};
+
+app.get('/:page(about|services|capabilities|portfolio|case-studies|contact|blog)', (req, res, next) => {
+  const ua = req.headers['user-agent'] || '';
+  if (!isSocialBot(ua)) return next();
+
+  const page = req.params.page;
+  const meta = staticPagesMeta[page];
+  if (!meta) return next();
+
+  const siteUrl = 'https://elipsestudio.com';
+  const pageUrl = `${siteUrl}/${page}`;
+  const image = `${siteUrl}/assets/og-image.png`;
+
+  const esc = (str = '') => String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${esc(meta.title)}</title>
+  <meta name="description" content="${esc(meta.desc)}" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:title"       content="${esc(meta.title)}" />
+  <meta property="og:description" content="${esc(meta.desc)}" />
+  <meta property="og:image"       content="${esc(image)}" />
+  <meta property="og:url"         content="${esc(pageUrl)}" />
+  <meta property="og:site_name"   content="Elipse Studio" />
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="${esc(meta.title)}" />
+  <meta name="twitter:description" content="${esc(meta.desc)}" />
+  <meta name="twitter:image"       content="${esc(image)}" />
+
+  <!-- Canonical -->
+  <link rel="canonical" href="${esc(pageUrl)}" />
+
+  <!-- Redirect real users to the SPA -->
+  <meta http-equiv="refresh" content="0;url=${esc(pageUrl)}" />
+</head>
+<body>
+  <p>Redirecting to <a href="${esc(pageUrl)}">${esc(meta.title)}</a>…</p>
+</body>
+</html>`);
+});
+
 // ── Social Bot: Dynamic Blog Meta Tags ──────────────────────────────────────
 // When WhatsApp / Facebook / LinkedIn bots crawl a blog URL they get a
 // server-rendered HTML page with correct og: and twitter: meta tags.
@@ -115,7 +194,7 @@ app.get('/blog/:slug', async (req, res, next) => {
     const siteUrl = 'https://elipsestudio.com';
     const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
-      if (!val) return `${siteUrl}/assets/og-image.webp`;
+      if (!val) return `${siteUrl}/assets/og-image.png`;
       if (val.startsWith('http')) return val;
       return `${baseUrl}${val.startsWith('/') ? val : '/' + val}`;
     };
@@ -182,7 +261,7 @@ app.get('/project/:path(*)', async (req, res, next) => {
     const siteUrl = 'https://elipsestudio.com';
     const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
-      if (!val) return `${siteUrl}/assets/og-image.webp`;
+      if (!val) return `${siteUrl}/assets/og-image.png`;
       if (val.startsWith('http')) return val;
       return `${baseUrl}${val.startsWith('/') ? val : '/' + val}`;
     };
