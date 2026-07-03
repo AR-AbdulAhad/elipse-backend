@@ -2,7 +2,7 @@ const prisma = require('../config/prisma');
 const fs = require('fs');
 const path = require('path');
 
-const uploadsDir = path.join(__dirname, '../../uploads');
+const uploadsDir = path.resolve(__dirname, '../../uploads');
 
 const deleteProjectImageFiles = (record) => {
   const paths = [];
@@ -21,28 +21,33 @@ const deleteProjectImageFiles = (record) => {
   });
 };
 
+const getBaseUrl = (req) => {
+  return (process.env.VITE_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+};
+
+const buildUrl = (val, req) => {
+  if (!val) return val;
+  if (val.startsWith('http')) return val;
+  const p = val.startsWith('/') ? val : `/${val}`;
+  return `${getBaseUrl(req)}${p}`;
+};
+
+const fixSections = (sections, req) => {
+  if (!sections) return sections;
+  try {
+    const arr = JSON.parse(sections);
+    return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image, req) : s.image })));
+  } catch { return sections; }
+};
+
 const getProjects = async (req, res) => {
   try {
     const allProjects = await prisma.project.findMany({ orderBy: { position: 'asc' } });
-    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`).replace(/\/+$/, '');
-    const buildUrl = (val) => {
-      if (!val) return val;
-      if (val.startsWith('http')) return val;
-      const path = val.startsWith('/') ? val : `/${val}`;
-      return `${baseUrl}${path}`;
-    };
-    const fixSections = (sections) => {
-      if (!sections) return sections;
-      try {
-        const arr = JSON.parse(sections);
-        return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
-      } catch { return sections; }
-    };
     const projectsWithUrls = allProjects.map(p => ({
       ...p,
-      image: p.image ? buildUrl(p.image) : p.image,
-      video: p.video ? buildUrl(p.video) : p.video,
-      sections: fixSections(p.sections),
+      image: p.image ? buildUrl(p.image, req) : p.image,
+      video: p.video ? buildUrl(p.video, req) : p.video,
+      sections: fixSections(p.sections, req),
     }));
     return res.json(projectsWithUrls);
   } catch (error) {
@@ -55,25 +60,11 @@ const getProjectByPath = async (req, res) => {
     const path = req.query.path || req.params.path;
     const project = await prisma.project.findUnique({ where: { path } });
     if (!project) return res.status(404).json({ message: 'Project not found' });
-    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`).replace(/\/+$/, '');
-    const buildUrl = (val) => {
-      if (!val) return val;
-      if (val.startsWith('http')) return val;
-      const path = val.startsWith('/') ? val : `/${val}`;
-      return `${baseUrl}${path}`;
-    };
-    const fixSections = (sections) => {
-      if (!sections) return sections;
-      try {
-        const arr = JSON.parse(sections);
-        return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
-      } catch { return sections; }
-    };
     const projectWithUrls = {
       ...project,
-      image: project.image ? buildUrl(project.image) : project.image,
-      video: project.video ? buildUrl(project.video) : project.video,
-      sections: fixSections(project.sections),
+      image: project.image ? buildUrl(project.image, req) : project.image,
+      video: project.video ? buildUrl(project.video, req) : project.video,
+      sections: fixSections(project.sections, req),
     };
     return res.json(projectWithUrls);
   } catch (error) {

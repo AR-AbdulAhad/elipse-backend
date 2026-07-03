@@ -85,7 +85,8 @@ app.get('/status', (req, res) => {
 });
 
 // ── Uploaded Files ──────────────────────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadsDir = process.env.UPLOADS_PATH || path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // ── API Routes ──────────────────────────────────────────────────────────────
 app.use('/api/contact', contactRoutes);

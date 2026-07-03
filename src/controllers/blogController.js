@@ -2,7 +2,26 @@ const prisma = require('../config/prisma');
 const fs = require('fs');
 const path = require('path');
 
-const uploadsDir = path.join(__dirname, '../../uploads');
+const uploadsDir = path.resolve(__dirname, '../../uploads');
+
+const getBaseUrl = (req) => {
+  return (process.env.VITE_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+};
+
+const buildUrl = (val, req) => {
+  if (!val) return val;
+  if (val.startsWith('http')) return val;
+  const p = val.startsWith('/') ? val : `/${val}`;
+  return `${getBaseUrl(req)}${p}`;
+};
+
+const fixSections = (sections, req) => {
+  if (!sections) return sections;
+  try {
+    const arr = JSON.parse(sections);
+    return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image, req) : s.image })));
+  } catch { return sections; }
+};
 
 const deleteImageFiles = (record) => {
   const imageFields = ['image', 'image2', 'image3', 'image4'];
@@ -24,37 +43,21 @@ const deleteImageFiles = (record) => {
   });
 };
 
-// Helper to strip any origin (e.g., http://localhost:5003) from stored paths
 const normalize = (val) => {
   if (!val) return val;
   return val.replace(/^https?:\/\/[^/]+/, '');
 };
 
-// Get all blogs with proper URLs
 const getBlogs = async (req, res) => {
   try {
     const blogs = await prisma.blog.findMany({ orderBy: { position: 'asc' } });
-    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`).replace(/\/+$/, '');
-    const buildUrl = (val) => {
-      if (!val) return val;
-      if (val.startsWith('http')) return val;
-      const path = val.startsWith('/') ? val : `/${val}`;
-      return `${baseUrl}${path}`;
-    };
-    const fixSections = (sections) => {
-      if (!sections) return sections;
-      try {
-        const arr = JSON.parse(sections);
-        return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
-      } catch { return sections; }
-    };
     const blogsWithUrls = blogs.map(b => ({
       ...b,
-      image: b.image ? buildUrl(b.image) : b.image,
-      image2: b.image2 ? buildUrl(b.image2) : b.image2,
-      image3: b.image3 ? buildUrl(b.image3) : b.image3,
-      image4: b.image4 ? buildUrl(b.image4) : b.image4,
-      sections: fixSections(b.sections),
+      image: b.image ? buildUrl(b.image, req) : b.image,
+      image2: b.image2 ? buildUrl(b.image2, req) : b.image2,
+      image3: b.image3 ? buildUrl(b.image3, req) : b.image3,
+      image4: b.image4 ? buildUrl(b.image4, req) : b.image4,
+      sections: fixSections(b.sections, req),
     }));
     res.json(blogsWithUrls);
   } catch (error) {
@@ -66,27 +69,13 @@ const getBlogBySlug = async (req, res) => {
   try {
     const blog = await prisma.blog.findUnique({ where: { slug: req.params.slug } });
     if (!blog) return res.status(404).json({ message: 'Blog not found' });
-    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`).replace(/\/+$/, '');
-    const buildUrl = (val) => {
-      if (!val) return val;
-      if (val.startsWith('http')) return val;
-      const path = val.startsWith('/') ? val : `/${val}`;
-      return `${baseUrl}${path}`;
-    };
-    const fixSections = (sections) => {
-      if (!sections) return sections;
-      try {
-        const arr = JSON.parse(sections);
-        return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
-      } catch { return sections; }
-    };
     res.json({
       ...blog,
-      image: blog.image ? buildUrl(blog.image) : blog.image,
-      image2: blog.image2 ? buildUrl(blog.image2) : blog.image2,
-      image3: blog.image3 ? buildUrl(blog.image3) : blog.image3,
-      image4: blog.image4 ? buildUrl(blog.image4) : blog.image4,
-      sections: fixSections(blog.sections),
+      image: blog.image ? buildUrl(blog.image, req) : blog.image,
+      image2: blog.image2 ? buildUrl(blog.image2, req) : blog.image2,
+      image3: blog.image3 ? buildUrl(blog.image3, req) : blog.image3,
+      image4: blog.image4 ? buildUrl(blog.image4, req) : blog.image4,
+      sections: fixSections(blog.sections, req),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
