@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/prisma');
+const { adminEmail, adminPassword } = require('../config/authConfig');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -15,9 +16,6 @@ const authUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const adminEmail = (process.env.ADMIN_EMAIL || 'admin@example.com').trim();
-    const adminPassword = (process.env.ADMIN_PASSWORD || 'admin123').trim();
-
     const isEnvMatch = email?.trim() === adminEmail && password?.trim() === adminPassword;
 
     if (isEnvMatch) {
@@ -58,8 +56,6 @@ const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   try {
-    const adminPassword = (process.env.ADMIN_PASSWORD || 'admin123').trim();
-
     if (currentPassword !== adminPassword) {
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
@@ -69,7 +65,6 @@ const changePassword = async (req, res) => {
     }
 
     // Save the new password to User table in DB so it persists
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await prisma.user.upsert({

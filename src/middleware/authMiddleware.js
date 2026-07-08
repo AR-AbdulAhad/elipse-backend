@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/prisma');
+const { adminEmail } = require('../config/authConfig');
 
 const protect = async (req, res, next) => {
   let token;
@@ -19,7 +20,7 @@ const protect = async (req, res, next) => {
         req.user = {
           id: 'admin_fixed_id',
           name: 'Admin',
-          email: process.env.ADMIN_EMAIL || 'admin@example.com',
+          email: adminEmail,
         };
         console.log('✅ Auth Check: Verified for Fixed Admin');
         return next();
