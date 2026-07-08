@@ -77,6 +77,7 @@ const createProject = async (req, res) => {
     const { title, metaTitle, metaDescription, category, image, video, path, description, sections } = req.body;
     const normalize = (val) => {
       if (!val) return val;
+      if (/youtube\.com|youtu\.be/i.test(val)) return val;
       return val.replace(/^https?:\/\/[^/]+/, '');
     };
     await prisma.project.updateMany({ data: { position: { increment: 1 } } });
@@ -106,6 +107,7 @@ const updateProject = async (req, res) => {
     const data = req.body;
     const normalize = (val) => {
       if (!val) return val;
+      if (/youtube\.com|youtu\.be/i.test(val)) return val;
       return val.replace(/^https?:\/\/[^/]+/, '');
     };
     const cleanedData = {

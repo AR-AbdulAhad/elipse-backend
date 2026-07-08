@@ -1,4 +1,4 @@
-const prisma = require('../config/prisma');
+﻿const prisma = require('../config/prisma');
 const path = require('path');
 const fs = require('fs');
 
@@ -41,12 +41,12 @@ const imageMappings = {
   'khoj-villas.webp': 'ElipseImages/projects/khoj-villas.webp',
   '15.jpg': 'ElipseImages/hero/15.jpg',
   'volve-configrator.webp': 'ElipseImages/hero/volve-configrator.webp',
-  'Steering-1.png': 'ElipseImages/projects/Steering-1.png',
+  'Steering-1.webp': 'ElipseImages/projects/Steering-1.webp',
   'News1.webp': 'ElipseImages/projects/News1.webp',
   'elipse-artitecture.webp': 'ElipseImages/projects/elipse-artitecture.webp',
   'jetour.webp': 'ElipseImages/blogs/jetour.webp',
   'quest.3.webp': 'ElipseImages/blogs/quest.3.webp',
-  'Ar.PNG': 'ElipseImages/blogs/Ar.PNG',
+  'Ar.webp': 'ElipseImages/blogs/Ar.webp',
   'alnoor.webp': 'ElipseImages/blogs/alnoor.webp',
   'edu-1.webp': 'images/edu-1.webp',
   '1 (1).webp': 'images/1 (1).webp',
@@ -60,7 +60,7 @@ const imageMappings = {
 const staticProjects = [
   { title: 'Ahmed Food', category: 'Animation', path: '/project/ahmed-food', image: '15.jpg', video: 'Gabani.mp4' },
   { title: 'VOLVO CONFIGURATOR', category: 'Configurator', path: '/project/volvo-configurator', image: 'volve-configrator.webp', video: 'Volvo.mp4' },
-  { title: 'STEERING CONFIGURATOR', category: 'Configurator', path: '/project/steering-configurator', image: 'Steering-1.png' },
+  { title: 'STEERING CONFIGURATOR', category: 'Configurator', path: '/project/steering-configurator', image: 'Steering-1.webp' },
   { title: 'Lahore Zoo', category: 'Animation', path: '/project/lahore-zoo', image: '0.webp', video: 'Khoj.mp4' },
   { title: 'Luxury Villa', category: 'Architecture', path: '/project/luxury-villa', image: 'VR1.webp', video: 'Vfx.mp4' },
   { title: 'MALKA FOOD', category: 'Animation', path: '/project/malka-food', image: 'malka-food (2).webp' },
@@ -114,7 +114,7 @@ const staticBlogs = [
   { title: 'Educational Animation Services for E-Learning Platforms in 2026', slug: 'educational-animation-2026', category: 'Education', date: 'June 02, 2026', image: 'edu-1.webp', excerpt: 'Educational animation services for e-learning platforms.', content: '' },
   { title: 'Configurator Solutions for Custom Furniture Brands in USA 2026', slug: 'furniture-configurator-2026', category: 'Innovation', date: 'May 11, 2026', image: 'alnoor.webp', excerpt: 'Configurator solutions for custom furniture brands in USA 2026.', content: '', video: 'Vfx.mp4' },
   { title: 'Why Animated Videos Boost Customer Engagement in 2026', slug: 'animated-videos-engagement', category: 'Marketing', date: 'May 11, 2026', image: 'Animation.webp', excerpt: 'Why animated videos boost customer engagement in 2026.', content: '', video: 'Jam & Spread 15 Sec.mp4' },
-  { title: 'AR vs. VR vs. MR: Which Immersive Technology Will Transform Your Brand in 2026?', slug: 'immersive-tech-2026', category: 'Strategy', date: 'May 11, 2026', image: 'Ar.PNG', excerpt: 'AR vs. VR vs. MR comparison for brands in 2026.', content: '', video: 'TeenageGuy.mp4' },
+  { title: 'AR vs. VR vs. MR: Which Immersive Technology Will Transform Your Brand in 2026?', slug: 'immersive-tech-2026', category: 'Strategy', date: 'May 11, 2026', image: 'Ar.webp', excerpt: 'AR vs. VR vs. MR comparison for brands in 2026.', content: '', video: 'TeenageGuy.mp4' },
   { title: 'How Virtual Reality Is Reshaping the Way We Work and Experience the World', slug: 'vr-reshaping-world', category: 'Innovation', date: 'May 05, 2026', image: 'quest.3.webp', excerpt: 'How VR is reshaping work and experiences.', content: '', video: 'Bombay 05 Sec.mp4' },
   { title: 'How Automotive Configurators Are Redefining the Car Buying Experience', slug: 'automotive-configurator', category: 'Automotive', date: 'May 08, 2026', image: 'volve-configrator.webp', excerpt: 'How automotive configurators redefine car buying.', content: '' },
   { title: 'What Is Immersive Experience Design and Why Brands Need It in 2026', slug: 'immersive-experience-design', category: 'Strategy', date: 'May 10, 2026', image: 'blogs-Ar.webp', excerpt: 'Immersive experience design and why brands need it.', content: '', video: 'Inverex.mp4' },
