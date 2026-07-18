@@ -46,6 +46,7 @@ const getProjects = async (req, res) => {
     const projectsWithUrls = allProjects.map(p => ({
       ...p,
       image: p.image ? buildUrl(p.image, req) : p.image,
+      heroImage: p.heroImage ? buildUrl(p.heroImage, req) : p.heroImage,
       video: p.video ? buildUrl(p.video, req) : p.video,
       sections: fixSections(p.sections, req),
     }));
@@ -63,6 +64,7 @@ const getProjectByPath = async (req, res) => {
     const projectWithUrls = {
       ...project,
       image: project.image ? buildUrl(project.image, req) : project.image,
+      heroImage: project.heroImage ? buildUrl(project.heroImage, req) : project.heroImage,
       video: project.video ? buildUrl(project.video, req) : project.video,
       sections: fixSections(project.sections, req),
     };
@@ -74,7 +76,7 @@ const getProjectByPath = async (req, res) => {
 
 const createProject = async (req, res) => {
   try {
-    const { title, metaTitle, metaDescription, category, image, video, path, description, sections } = req.body;
+    const { title, metaTitle, metaDescription, category, image, heroImage, heroVideo, video, path, description, sections } = req.body;
     const normalize = (val) => {
       if (!val) return val;
       if (/youtube\.com|youtu\.be/i.test(val)) return val;
@@ -88,6 +90,8 @@ const createProject = async (req, res) => {
         metaDescription: metaDescription || null,
         category,
         image: normalize(image),
+        heroImage: normalize(heroImage),
+        heroVideo: normalize(heroVideo),
         video: normalize(video),
         path,
         description: description || '',
@@ -113,6 +117,8 @@ const updateProject = async (req, res) => {
     const cleanedData = {
       ...data,
       image: normalize(data.image),
+      heroImage: normalize(data.heroImage),
+      heroVideo: normalize(data.heroVideo),
       video: normalize(data.video),
     };
     const project = await prisma.project.update({

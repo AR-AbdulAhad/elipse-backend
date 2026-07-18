@@ -52,6 +52,8 @@ model Project {
   metaDescription String?  @db.Text
   category        String
   image           String
+  heroImage       String?
+  heroVideo       String?
   video           String?
   path            String   @unique
   description     String   @default("") @db.Text
