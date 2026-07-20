@@ -46,21 +46,33 @@ model Meeting {
 }
 
 model Project {
-  id              Int      @id @default(autoincrement())
-  title           String
-  metaTitle       String?
-  metaDescription String?  @db.Text
-  category        String
-  image           String
-  heroImage       String?
-  heroVideo       String?
-  video           String?
-  path            String   @unique
-  description     String   @default("") @db.Text
-  sections        String   @default("[]") @db.Text
-  position        Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  title             String
+  metaTitle         String?
+  metaDescription   String?  @db.Text
+  category          String
+  image             String
+  heroImage         String?
+  heroVideo         String?
+  video             String?
+  path              String   @unique
+  description       String   @default("") @db.Text
+  sections          String   @default("[]") @db.Text
+  position          Int      @default(0)
+  client            String?
+  service           String?
+  duration          String?
+  deliverables      String?
+  overviewHeading   String?
+  overviewText      String?  @db.Text
+  challengeHeading  String?
+  challengeText     String?  @db.Text
+  results           String?  @default("[]") @db.Text
+  processSteps      String?  @default("[]") @db.Text
+  galleryCategories String?  @default("[]") @db.Text
+  videoTabs         String?  @default("[]") @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Review {

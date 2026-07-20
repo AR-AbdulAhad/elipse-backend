@@ -76,7 +76,7 @@ const getProjectByPath = async (req, res) => {
 
 const createProject = async (req, res) => {
   try {
-    const { title, metaTitle, metaDescription, category, image, heroImage, heroVideo, video, path, description, sections } = req.body;
+    const { title, metaTitle, metaDescription, category, image, heroImage, heroVideo, video, path, description, sections, client, service, duration, deliverables, overviewHeading, overviewText, challengeHeading, challengeText, results, processSteps, galleryCategories, videoTabs } = req.body;
     const normalize = (val) => {
       if (!val) return val;
       if (/youtube\.com|youtu\.be/i.test(val)) return val;
@@ -97,6 +97,18 @@ const createProject = async (req, res) => {
         description: description || '',
         sections: sections || '[]',
         position: 0,
+        client: client || null,
+        service: service || null,
+        duration: duration || null,
+        deliverables: deliverables || null,
+        overviewHeading: overviewHeading || null,
+        overviewText: overviewText || null,
+        challengeHeading: challengeHeading || null,
+        challengeText: challengeText || null,
+        results: results || '[]',
+        processSteps: processSteps || '[]',
+        galleryCategories: galleryCategories || '[]',
+        videoTabs: videoTabs || '[]',
       }
     });
     res.status(201).json(project);
