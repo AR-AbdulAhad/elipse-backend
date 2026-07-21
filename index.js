@@ -15,6 +15,7 @@ const uploadRoutes = require('./src/routes/uploadRoutes');
 const seedRoutes = require('./src/routes/seedRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const socialMediaRoutes = require('./src/routes/socialMediaRoutes');
+const sitemapRoute = require('./src/routes/sitemapRoute');
 
 // Connect to Database
 connectDB();
@@ -98,6 +99,9 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/seed', seedRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/social-media', socialMediaRoutes);
+
+// ── Dynamic Sitemap ──────────────────────────────────────────────────────────
+app.use(sitemapRoute);
 
 // ── Social Bot: Static Pages Meta Tags ─────────────────────────────────────────
 const staticPagesMeta = {
