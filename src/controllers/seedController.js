@@ -87,13 +87,13 @@ const staticProjects = [
   { title: 'Architectural Walkthrough', category: 'Animation', path: '/project/arch-walkthrough', image: 'Animation2.webp' },
   { title: 'VR Simu-Lab', category: 'VR', path: '/project/vr-simu-lab', image: 'VR4.webp' },
   { title: 'Urban Planning', category: 'Architecture', path: '/project/urban-planning', image: 'Artictecture3.webp' },
-  { title: 'OFFICE TOUR', category: 'Tour 360', path: 'https://elipsestudio.com/office-tour/', image: '3601.webp' },
+  { title: 'OFFICE TOUR', category: 'Tour 360', path: '/office-tour/', image: '3601.webp' },
   { title: 'TOWEL CONFIGURATOR', category: 'Configurator', path: '/project/towel-configurator', image: 'TOWEL.webp' },
   { title: 'Character Rigging', category: 'Animation', path: '/project/character-rigging', image: 'Animation3.webp' },
   { title: 'VR Real Estate', category: 'VR', path: '/project/vr-real-estate', image: 'VR5.webp' },
-  { title: 'CHRISTMAS MARKET TOUR', category: 'Tour 360', path: 'https://elipsestudio.com/ChristmasMarket_360_Virtual_Tour/', image: '3602.webp' },
+  { title: 'CHRISTMAS MARKET TOUR', category: 'Tour 360', path: '/ChristmasMarket_360_Virtual_Tour/', image: '3602.webp' },
   { title: 'YACHT CONFIGURATOR', category: 'Configurator', path: '/project/yacht-configurator', image: 'Boat.webp' },
-  { title: 'SCOTT 360 VIRTUAL TOUR', category: 'Tour 360', path: 'https://elipsestudio.com/scott-360-virtual-tour/', image: '3604.webp' },
+  { title: 'SCOTT 360 VIRTUAL TOUR', category: 'Tour 360', path: '/scott-360-virtual-tour/', image: '3604.webp' },
   { title: 'Qistmarket', category: 'Web', path: '/project/qistmarket', image: 'Qist-market.webp' },
  ];
 

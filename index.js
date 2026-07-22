@@ -15,6 +15,7 @@ const uploadRoutes = require('./src/routes/uploadRoutes');
 const seedRoutes = require('./src/routes/seedRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const socialMediaRoutes = require('./src/routes/socialMediaRoutes');
+const caseStudyRoutes = require('./src/routes/caseStudyRoutes');
 const sitemapRoute = require('./src/routes/sitemapRoute');
 
 // Connect to Database
@@ -99,6 +100,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/seed', seedRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/social-media', socialMediaRoutes);
+app.use('/api/case-studies', caseStudyRoutes);
 
 // ── Dynamic Sitemap ──────────────────────────────────────────────────────────
 app.use(sitemapRoute);
@@ -143,7 +145,7 @@ app.get('/:page(about|services|capabilities|portfolio|case-studies|contact|blog)
   const meta = staticPagesMeta[page];
   if (!meta) return next();
 
-  const siteUrl = 'https://elipsestudio.com';
+  const siteUrl = process.env.BACKEND_URL || 'http://localhost:3000';
   const pageUrl = `${siteUrl}/${page}`;
   const image = `${siteUrl}/assets/og-image.png`;
 
@@ -196,7 +198,7 @@ app.get('/blog/:slug', async (req, res, next) => {
   try {
     const blog = await prisma.blog.findUnique({ where: { slug: req.params.slug } });
 
-    const siteUrl = 'https://elipsestudio.com';
+    const siteUrl = process.env.BACKEND_URL || 'http://localhost:3000';
     const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return `${siteUrl}/assets/og-image.png`;
@@ -263,7 +265,7 @@ app.get('/project/:path(*)', async (req, res, next) => {
     const fullPath = '/project/' + req.params.path;
     const project = await prisma.project.findUnique({ where: { path: fullPath } });
 
-    const siteUrl = 'https://elipsestudio.com';
+    const siteUrl = process.env.BACKEND_URL || 'http://localhost:3000';
     const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return `${siteUrl}/assets/og-image.png`;
@@ -317,6 +319,64 @@ app.get('/project/:path(*)', async (req, res, next) => {
 </html>`);
   } catch (err) {
     console.error('Project bot meta route error:', err);
+    return next();
+  }
+});
+
+// ── Social Bot: Dynamic Case Study Meta Tags ────────────────────────────────
+app.get('/case-study/:slug', async (req, res, next) => {
+  const ua = req.headers['user-agent'] || '';
+  if (!isSocialBot(ua)) return next();
+
+  try {
+    const cs = await prisma.caseStudy.findUnique({ where: { slug: req.params.slug } });
+
+    const siteUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
+    const buildUrl = (val) => {
+      if (!val) return `${siteUrl}/assets/og-image.png`;
+      if (val.startsWith('http')) return val;
+      return `${baseUrl}${val.startsWith('/') ? val : '/' + val}`;
+    };
+
+    if (!cs) {
+      return res.status(404).send(`<!DOCTYPE html><html><head><title>Not Found | Elipse Studio</title></head><body></body></html>`);
+    }
+
+    const seoTitle = cs.metaTitle || cs.title;
+    const title = `${seoTitle} | Elipse Studio`;
+    const rawDesc = cs.content ? cs.content.replace(/<[^>]*>/g, '') : `Read about ${cs.title} at Elipse Studio`;
+    const desc = cs.metaDescription || rawDesc.slice(0, 160);
+    const image = buildUrl(cs.largeBanner || cs.smallBanner);
+    const pageUrl = `${siteUrl}/case-study/${cs.slug}`;
+
+    const esc = (str = '') => String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${esc(title)}</title>
+  <meta name="description" content="${esc(desc)}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="${esc(title)}" />
+  <meta property="og:description" content="${esc(desc)}" />
+  <meta property="og:image" content="${esc(image)}" />
+  <meta property="og:url" content="${esc(pageUrl)}" />
+  <meta property="og:site_name" content="Elipse Studio" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${esc(title)}" />
+  <meta name="twitter:description" content="${esc(desc)}" />
+  <meta name="twitter:image" content="${esc(image)}" />
+  <link rel="canonical" href="${esc(pageUrl)}" />
+  <meta http-equiv="refresh" content="0;url=${esc(pageUrl)}" />
+</head>
+<body>
+  <p>Redirecting to <a href="${esc(pageUrl)}">${esc(title)}</a>…</p>
+</body>
+</html>`);
+  } catch (err) {
+    console.error('Case study bot meta route error:', err);
     return next();
   }
 });
