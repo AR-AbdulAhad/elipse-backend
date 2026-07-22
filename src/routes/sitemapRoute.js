@@ -22,55 +22,59 @@ const CACHE_SECONDS = 86400; // 24 h
 // ── Static pages — every URL here MUST match a React route in App.jsx ────────
 // Priority guide:
 //   1.0  Homepage
-//   0.9  Money pages (services hub, portfolio, industries hub, contact)
-//   0.8  Individual service / industry pages
-//   0.7  Blog index
+//   0.9  Money pages (services hub, industries hub, portfolio, contact)
+//   0.8  Individual service / industry pages, trust pages
+//   0.7  Blog index, blog articles
 //   0.6  Static blog articles (hardcoded in React)
 //   0.5  Legacy redirects (so crawlers discover the 301)
 //   0.3  Utility pages (privacy, terms)
 
 const STATIC_URLS = [
-  // ── Core ──
+  // ── 1. Homepage ──
   { url: '/',                                 changefreq: 'daily',   priority: 1.0  },
-  { url: '/about',                            changefreq: 'monthly', priority: 0.9  },
-  { url: '/capabilities',                     changefreq: 'monthly', priority: 0.8  },
-  { url: '/portfolio',                        changefreq: 'weekly',  priority: 0.9  },
-  { url: '/case-studies',                     changefreq: 'weekly',  priority: 0.8  },
-  { url: '/contact',                          changefreq: 'monthly', priority: 0.9  },
+
+  // ── 2. Hub / Money Pages ──
   { url: '/services',                         changefreq: 'monthly', priority: 0.9  },
   { url: '/industries',                       changefreq: 'monthly', priority: 0.9  },
-  { url: '/blog',                             changefreq: 'weekly',  priority: 0.7  },
+  { url: '/portfolio',                        changefreq: 'weekly',  priority: 0.9  },
+  { url: '/blog',                             changefreq: 'weekly',  priority: 0.8  },
+  { url: '/case-studies',                     changefreq: 'weekly',  priority: 0.8  },
+  { url: '/contact',                          changefreq: 'monthly', priority: 0.8  },
+  { url: '/capabilities',                     changefreq: 'monthly', priority: 0.8  },
+  { url: '/about',                            changefreq: 'monthly', priority: 0.8  },
 
-  // ── Individual service pages (15 — matches App.jsx routes exactly) ──
-  { url: '/services/architectural-visualization',   changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/3d-product-visualization',      changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/3d-product-configurators',      changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/interactive-web-experiences',   changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/vr-development',                changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/ar-development',                changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/3d-animation',                  changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/vfx-virtual-production',        changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/virtual-showrooms-digital-twins', changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/custom-software-development',   changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/website-development',           changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/mobile-app-development',        changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/creative-services',             changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/enterprise-solutions',          changefreq: 'monthly', priority: 0.8 },
-  { url: '/services/marketing',                     changefreq: 'monthly', priority: 0.8 },
+  // ── 3. Individual service pages (15 — matches App.jsx routes exactly) ──
+  { url: '/services/architectural-visualization',   changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/3d-product-visualization',      changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/3d-product-configurators',      changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/interactive-web-experiences',   changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/vr-development',                changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/ar-development',                changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/3d-animation',                  changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/vfx-virtual-production',        changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/virtual-showrooms-digital-twins', changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/custom-software-development',   changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/website-development',           changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/mobile-app-development',        changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/creative-services',             changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/enterprise-solutions',          changefreq: 'monthly', priority: 0.9 },
+  { url: '/services/marketing',                     changefreq: 'monthly', priority: 0.9 },
 
-  // ── Industry pages (10 — matches industriesData.js slugs) ──
-  { url: '/industries/real-estate',      changefreq: 'monthly', priority: 0.8 },
-  { url: '/industries/architecture',     changefreq: 'monthly', priority: 0.8 },
-  { url: '/industries/interior-design',  changefreq: 'monthly', priority: 0.8 },
-  { url: '/industries/manufacturing',    changefreq: 'monthly', priority: 0.8 },
-  { url: '/industries/ecommerce',        changefreq: 'monthly', priority: 0.8 },
-  { url: '/industries/automotive',       changefreq: 'monthly', priority: 0.8 },
-  { url: '/industries/healthcare',       changefreq: 'monthly', priority: 0.8 },
-  { url: '/industries/education',        changefreq: 'monthly', priority: 0.8 },
-  { url: '/industries/hospitality',      changefreq: 'monthly', priority: 0.8 },
-  { url: '/industries/fashion-luxury',   changefreq: 'monthly', priority: 0.8 },
+  // ── 4. Industry pages (12 — matches industriesData.js slugs exactly) ──
+  { url: '/industries/real-estate',        changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/architecture',       changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/interior-design',    changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/manufacturing',      changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/ecommerce',          changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/automotive',         changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/furniture',          changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/healthcare',         changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/education-training', changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/construction',       changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/energy-utilities',   changefreq: 'monthly', priority: 0.9 },
+  { url: '/industries/hospitality',        changefreq: 'monthly', priority: 0.9 },
 
-  // ── Legacy redirects (low priority — so Google discovers the 301) ──
+  // ── 5. Legacy redirects (low priority — so Google discovers the 301) ──
   { url: '/services/web-configurators',  changefreq: 'monthly', priority: 0.3 },
   { url: '/services/vr',                 changefreq: 'monthly', priority: 0.3 },
   { url: '/services/ar',                 changefreq: 'monthly', priority: 0.3 },
@@ -78,7 +82,7 @@ const STATIC_URLS = [
   { url: '/services/animation',          changefreq: 'monthly', priority: 0.3 },
   { url: '/blogs',                       changefreq: 'monthly', priority: 0.3 },
 
-  // ── Hardcoded blog articles (React components — NOT in DB) ──
+  // ── 6. Hardcoded blog articles (React components — NOT in DB) ──
   { url: '/blog/web-based-configurator',                                   changefreq: 'monthly', priority: 0.6 },
   { url: '/blog/immersive-ar-marketing',                                   changefreq: 'monthly', priority: 0.6 },
   { url: '/blog/industrial-animation',                                     changefreq: 'monthly', priority: 0.6 },
@@ -170,7 +174,7 @@ router.get('/sitemap.xml', async (_req, res) => {
     const stream = new SitemapStream({
       hostname: SITE_URL,
       cacheTime: CACHE_SECONDS * 1000,
-      xmlns: { xhtml: true },
+      xmlns: { xhtml: true, image: true },
     });
 
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
@@ -185,10 +189,13 @@ router.get('/sitemap.xml', async (_req, res) => {
       '<?xml version="1.0" encoding="UTF-8"?>',
       '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
       `  <url><loc>${SITE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
-      `  <url><loc>${SITE_URL}/about</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
       `  <url><loc>${SITE_URL}/services</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `  <url><loc>${SITE_URL}/industries</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
       `  <url><loc>${SITE_URL}/portfolio</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
-      `  <url><loc>${SITE_URL}/contact</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `  <url><loc>${SITE_URL}/blog</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
+      `  <url><loc>${SITE_URL}/case-studies</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
+      `  <url><loc>${SITE_URL}/contact</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>`,
+      `  <url><loc>${SITE_URL}/about</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>`,
       '</urlset>',
     ].join('\n');
 
