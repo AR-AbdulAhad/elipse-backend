@@ -102,6 +102,15 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/social-media', socialMediaRoutes);
 app.use('/api/case-studies', caseStudyRoutes);
 
+// ── 410 Gone: Old spam / ghost pages (products, ctg, wp-*) ───────────────────
+app.use((req, res, next) => {
+  const p = req.path.toLowerCase();
+  if (p.startsWith('/products/') || p.startsWith('/ctg/') || p.startsWith('/wp-')) {
+    return res.status(410).send('Gone');
+  }
+  next();
+});
+
 // ── Dynamic Sitemap ──────────────────────────────────────────────────────────
 app.use(sitemapRoute);
 
