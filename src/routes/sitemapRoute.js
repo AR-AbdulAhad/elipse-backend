@@ -16,7 +16,7 @@ const { Readable } = require('stream');
 const prisma = require('../config/prisma');
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const SITE_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+const SITE_URL = 'https://elipsestudio.com';
 const CACHE_SECONDS = 86400; // 24 h
 
 // ── Static pages — every URL here MUST match a React route in App.jsx ────────
