@@ -1,206 +1,243 @@
 /**
  * Dynamic XML Sitemap — Elipse Studio
  *
- * Serves GET /sitemap.xml with:
- *  - Static core / service / industry / blog-article pages
- *  - Dynamic Blog + Project records from the database (Prisma + MySQL)
- *  - Graceful fallback to static-only list if the DB is unreachable
+ * Serves:
+ *  - GET /sitemap.xml (Sitemap Index)
+ *  - GET /pages_sitemap.xml (Static core, service, industry, hardcoded blog routes)
+ *  - GET /projects_sitemap.xml (Dynamic Project records from DB)
+ *  - GET /blogs_sitemap.xml (Dynamic Blog records from DB)
+ *  - GET /casestudies_sitemap.xml (Dynamic CaseStudy records from DB)
  *
- * Response: application/xml, 24-hour cache
+ * Response: application/xml
  */
 
 const express = require('express');
 const router = express.Router();
-const { SitemapStream, streamToPromise } = require('sitemap');
-const { Readable } = require('stream');
 const prisma = require('../config/prisma');
 
-// ── Constants ────────────────────────────────────────────────────────────────
 const SITE_URL = 'https://elipsestudio.com';
 const CACHE_SECONDS = 86400; // 24 h
 
-// ── Static pages — every URL here MUST match a React route in App.jsx ────────
-// Priority guide:
-//   1.0  Homepage
-//   0.9  Money pages (services hub, industries hub, portfolio, contact)
-//   0.8  Individual service / industry pages, trust pages
-//   0.7  Blog index, blog articles
-//   0.6  Static blog articles (hardcoded in React)
-//   0.5  Legacy redirects (so crawlers discover the 301)
-//   0.3  Utility pages (privacy, terms)
+const escXml = (s = '') => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function formatUrlXml({ loc, lastmod, changefreq = 'monthly', priority = '0.7' }) {
+  let xml = `  <url>\n    <loc>${escXml(loc)}</loc>`;
+  if (lastmod) xml += `\n    <lastmod>${new Date(lastmod).toISOString().split('T')[0]}</lastmod>`;
+  xml += `\n    <changefreq>${changefreq}</changefreq>`;
+  xml += `\n    <priority>${priority}</priority>`;
+  xml += `\n  </url>`;
+  return xml;
+}
 
 const STATIC_URLS = [
   // ── 1. Homepage ──
-  { url: '/',                                 changefreq: 'daily',   priority: 1.0  },
+  { url: '/', changefreq: 'daily', priority: '1.0' },
 
   // ── 2. Hub / Money Pages ──
-  { url: '/services',                         changefreq: 'monthly', priority: 0.9  },
-  { url: '/industries',                       changefreq: 'monthly', priority: 0.9  },
-  { url: '/portfolio',                        changefreq: 'weekly',  priority: 0.9  },
-  { url: '/blog',                             changefreq: 'weekly',  priority: 0.8  },
-  { url: '/case-studies',                     changefreq: 'weekly',  priority: 0.8  },
-  { url: '/contact',                          changefreq: 'monthly', priority: 0.8  },
-  { url: '/capabilities',                     changefreq: 'monthly', priority: 0.8  },
-  { url: '/about',                            changefreq: 'monthly', priority: 0.8  },
+  { url: '/services', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries', changefreq: 'monthly', priority: '0.9' },
+  { url: '/portfolio', changefreq: 'weekly', priority: '0.9' },
+  { url: '/blog', changefreq: 'weekly', priority: '0.8' },
+  { url: '/case-studies', changefreq: 'weekly', priority: '0.8' },
+  { url: '/contact', changefreq: 'monthly', priority: '0.8' },
+  { url: '/capabilities', changefreq: 'monthly', priority: '0.8' },
+  { url: '/about', changefreq: 'monthly', priority: '0.8' },
 
-  // ── 3. Individual service pages (15 — matches App.jsx routes exactly) ──
-  { url: '/services/architectural-visualization',   changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/3d-product-visualization',      changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/3d-product-configurators',      changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/interactive-web-experiences',   changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/vr-development',                changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/ar-development',                changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/3d-animation',                  changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/vfx-virtual-production',        changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/virtual-showrooms-digital-twins', changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/custom-software-development',   changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/website-development',           changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/mobile-app-development',        changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/creative-services',             changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/enterprise-solutions',          changefreq: 'monthly', priority: 0.9 },
-  { url: '/services/marketing',                     changefreq: 'monthly', priority: 0.9 },
+  // ── 3. Individual service pages (15) ──
+  { url: '/services/architectural-visualization', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/3d-product-visualization', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/3d-product-configurators', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/interactive-web-experiences', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/vr-development', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/ar-development', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/3d-animation', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/vfx-virtual-production', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/virtual-showrooms-digital-twins', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/custom-software-development', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/website-development', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/mobile-app-development', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/creative-services', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/enterprise-solutions', changefreq: 'monthly', priority: '0.9' },
+  { url: '/services/marketing', changefreq: 'monthly', priority: '0.9' },
 
-  // ── 4. Industry pages (12 — matches industriesData.js slugs exactly) ──
-  { url: '/industries/real-estate',        changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/architecture',       changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/interior-design',    changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/manufacturing',      changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/ecommerce',          changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/automotive',         changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/furniture',          changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/healthcare',         changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/education-training', changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/construction',       changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/energy-utilities',   changefreq: 'monthly', priority: 0.9 },
-  { url: '/industries/hospitality',        changefreq: 'monthly', priority: 0.9 },
+  // ── 4. Industry pages (12) ──
+  { url: '/industries/real-estate', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/architecture', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/interior-design', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/manufacturing', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/ecommerce', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/automotive', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/furniture', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/healthcare', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/education-training', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/construction', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/energy-utilities', changefreq: 'monthly', priority: '0.9' },
+  { url: '/industries/hospitality', changefreq: 'monthly', priority: '0.9' },
 
-  // ── 5. Legacy redirects (low priority — so Google discovers the 301) ──
-  { url: '/services/web-configurators',  changefreq: 'monthly', priority: 0.3 },
-  { url: '/services/vr',                 changefreq: 'monthly', priority: 0.3 },
-  { url: '/services/ar',                 changefreq: 'monthly', priority: 0.3 },
-  { url: '/services/app-development',    changefreq: 'monthly', priority: 0.3 },
-  { url: '/services/animation',          changefreq: 'monthly', priority: 0.3 },
-  { url: '/blogs',                       changefreq: 'monthly', priority: 0.3 },
+  // ── 5. Legacy redirects ──
+  { url: '/services/web-configurators', changefreq: 'monthly', priority: '0.3' },
+  { url: '/services/vr', changefreq: 'monthly', priority: '0.3' },
+  { url: '/services/ar', changefreq: 'monthly', priority: '0.3' },
+  { url: '/services/app-development', changefreq: 'monthly', priority: '0.3' },
+  { url: '/services/animation', changefreq: 'monthly', priority: '0.3' },
+  { url: '/blogs', changefreq: 'monthly', priority: '0.3' },
 
-  // ── 6. Hardcoded blog articles (React components — NOT in DB) ──
-  { url: '/blog/web-based-configurator',                                   changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/immersive-ar-marketing',                                   changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/industrial-animation',                                     changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/automotive-configurator',                                   changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/vr-reshaping-world',                                       changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/immersive-experience-design',                              changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/immersive-tech-2026',                                      changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/animated-videos-engagement',                               changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/furniture-configurator-2026',                              changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/educational-animation-2026',                               changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/vr-custom-development-2026',                               changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/3d-real-time-configurators-real-estate-dubai',             changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/architectural-visualization-guide',                        changefreq: 'monthly', priority: 0.6 },
-  { url: '/blog/apparel-configurator-fashion-brands-2026',                 changefreq: 'monthly', priority: 0.6 },
+  // ── 6. Hardcoded blog articles ──
+  { url: '/blog/web-based-configurator', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/immersive-ar-marketing', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/industrial-animation', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/automotive-configurator', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/vr-reshaping-world', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/immersive-experience-design', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/immersive-tech-2026', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/animated-videos-engagement', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/furniture-configurator-2026', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/educational-animation-2026', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/vr-custom-development-2026', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/3d-real-time-configurators-real-estate-dubai', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/architectural-visualization-guide', changefreq: 'monthly', priority: '0.6' },
+  { url: '/blog/apparel-configurator-fashion-brands-2026', changefreq: 'monthly', priority: '0.6' },
 ];
 
-// ── Helper: DB record → sitemap entry ────────────────────────────────────────
+// 1. GET /sitemap.xml (Sitemap Index)
+router.get('/sitemap.xml', (_req, res) => {
+  const today = new Date().toISOString().split('T')[0];
 
-function blogToEntry(blog) {
-  return {
-    url: `/blog/${blog.slug}`,
-    changefreq: 'monthly',
-    priority: 0.7,
-    lastmod: blog.updatedAt ? blog.updatedAt.toISOString() : undefined,
-  };
-}
+  const indexXml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${SITE_URL}/pages_sitemap.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${SITE_URL}/projects_sitemap.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${SITE_URL}/blogs_sitemap.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${SITE_URL}/casestudies_sitemap.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+</sitemapindex>`;
 
-function projectToEntry(project) {
-  // project.path is already like "/project/ahmed-food"
-  return {
-    url: project.path,
-    changefreq: 'monthly',
-    priority: 0.8,
-    lastmod: project.updatedAt ? project.updatedAt.toISOString() : undefined,
-  };
-}
+  res.set('Content-Type', 'application/xml; charset=utf-8');
+  res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
+  res.send(indexXml);
+});
 
-// ── Route ────────────────────────────────────────────────────────────────────
+// 2. GET /pages_sitemap.xml
+router.get('/pages_sitemap.xml', (_req, res) => {
+  const urls = STATIC_URLS.map((item) =>
+    formatUrlXml({
+      loc: `${SITE_URL}${item.url}`,
+      changefreq: item.changefreq,
+      priority: item.priority,
+    })
+  );
 
-router.get('/sitemap.xml', async (_req, res) => {
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>`;
+
+  res.set('Content-Type', 'application/xml; charset=utf-8');
+  res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
+  res.send(xml);
+});
+
+// 3. GET /projects_sitemap.xml
+router.get('/projects_sitemap.xml', async (_req, res) => {
   try {
-    // 1. Fetch dynamic records from DB (fail gracefully)
-    let blogs = [];
-    let projects = [];
-
-    try {
-      blogs = await prisma.blog.findMany({
-        select: { slug: true, updatedAt: true },
-        orderBy: { updatedAt: 'desc' },
-      });
-    } catch (err) {
-      console.error('[sitemap] Blog query failed, using static fallback:', err.message);
-    }
-
-    try {
-      projects = await prisma.project.findMany({
-        select: { path: true, updatedAt: true },
-        orderBy: { updatedAt: 'desc' },
-      });
-    } catch (err) {
-      console.error('[sitemap] Project query failed, using static fallback:', err.message);
-    }
-
-    // 2. Merge everything, deduplicate by URL
-    const urlMap = new Map();
-
-    // Static entries first
-    for (const entry of STATIC_URLS) {
-      urlMap.set(entry.url, entry);
-    }
-
-    // Dynamic blog entries overwrite static blog entries if slug collides
-    for (const blog of blogs) {
-      const entry = blogToEntry(blog);
-      urlMap.set(entry.url, entry);
-    }
-
-    // Dynamic project entries
-    for (const project of projects) {
-      const entry = projectToEntry(project);
-      urlMap.set(entry.url, entry);
-    }
-
-    const allUrls = Array.from(urlMap.values());
-
-    console.log(`[sitemap] Serving ${allUrls.length} URLs (${blogs.length} blogs, ${projects.length} projects from DB)`);
-
-    // 3. Stream XML
-    const stream = new SitemapStream({
-      hostname: SITE_URL,
-      cacheTime: CACHE_SECONDS * 1000,
-      xmlns: { xhtml: true, image: true },
+    const projects = await prisma.project.findMany({
+      select: { path: true, updatedAt: true, createdAt: true },
+      orderBy: { updatedAt: 'desc' },
     });
 
-    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-    res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
+    const urls = projects.map((p) =>
+      formatUrlXml({
+        loc: `${SITE_URL}${p.path}`,
+        lastmod: p.updatedAt || p.createdAt,
+        changefreq: 'monthly',
+        priority: '0.8',
+      })
+    );
 
-    Readable.from(allUrls).pipe(stream).pipe(res);
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>`;
+
+    res.set('Content-Type', 'application/xml; charset=utf-8');
+    res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
+    res.send(xml);
   } catch (err) {
-    console.error('[sitemap] Fatal error:', err);
+    console.error('[sitemap] Error fetching projects:', err.message);
+    res.status(500).send('Error generating projects sitemap');
+  }
+});
 
-    // Last-resort minimal valid sitemap
-    const fallback = [
-      '<?xml version="1.0" encoding="UTF-8"?>',
-      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-      `  <url><loc>${SITE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
-      `  <url><loc>${SITE_URL}/services</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
-      `  <url><loc>${SITE_URL}/industries</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
-      `  <url><loc>${SITE_URL}/portfolio</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
-      `  <url><loc>${SITE_URL}/blog</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
-      `  <url><loc>${SITE_URL}/case-studies</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
-      `  <url><loc>${SITE_URL}/contact</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>`,
-      `  <url><loc>${SITE_URL}/about</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>`,
-      '</urlset>',
-    ].join('\n');
+// 4. GET /blogs_sitemap.xml
+router.get('/blogs_sitemap.xml', async (_req, res) => {
+  try {
+    const blogs = await prisma.blog.findMany({
+      select: { slug: true, updatedAt: true, createdAt: true },
+      orderBy: { updatedAt: 'desc' },
+    });
 
-    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-    res.status(200).send(fallback);
+    const urls = blogs.map((b) =>
+      formatUrlXml({
+        loc: `${SITE_URL}/blog/${b.slug}`,
+        lastmod: b.updatedAt || b.createdAt,
+        changefreq: 'monthly',
+        priority: '0.7',
+      })
+    );
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>`;
+
+    res.set('Content-Type', 'application/xml; charset=utf-8');
+    res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
+    res.send(xml);
+  } catch (err) {
+    console.error('[sitemap] Error fetching blogs:', err.message);
+    res.status(500).send('Error generating blogs sitemap');
+  }
+});
+
+// 5. GET /casestudies_sitemap.xml
+router.get('/casestudies_sitemap.xml', async (_req, res) => {
+  try {
+    const caseStudies = await prisma.caseStudy.findMany({
+      select: { slug: true, updatedAt: true, createdAt: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const urls = caseStudies.map((cs) =>
+      formatUrlXml({
+        loc: `${SITE_URL}/case-study/${cs.slug}`,
+        lastmod: cs.updatedAt || cs.createdAt,
+        changefreq: 'monthly',
+        priority: '0.7',
+      })
+    );
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>`;
+
+    res.set('Content-Type', 'application/xml; charset=utf-8');
+    res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
+    res.send(xml);
+  } catch (err) {
+    console.error('[sitemap] Error fetching case studies:', err.message);
+    res.status(500).send('Error generating case studies sitemap');
   }
 });
 
