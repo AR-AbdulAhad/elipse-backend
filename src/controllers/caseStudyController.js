@@ -57,7 +57,7 @@ const getCaseStudyBySlug = async (req, res) => {
 
 const createCaseStudy = async (req, res) => {
   try {
-    const { title, metaTitle, metaDescription, slug, largeBanner, smallBanner, content, client, service, category } = req.body;
+    const { title, metaTitle, metaDescription, slug, largeBanner, smallBanner, content, client, service, category, videoUrl } = req.body;
     const normalize = (val) => {
       if (!val) return val;
       return val.replace(/^https?:\/\/[^/]+/, '');
@@ -75,6 +75,7 @@ const createCaseStudy = async (req, res) => {
         client: client || null,
         service: service || null,
         category: category || null,
+        videoUrl: videoUrl || null,
         position: 0,
       }
     });

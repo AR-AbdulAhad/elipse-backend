@@ -71,6 +71,8 @@ model Project {
   processSteps      String?  @default("[]") @db.Text
   galleryCategories String?  @default("[]") @db.Text
   videoTabs         String?  @default("[]") @db.Text
+  ctaUrl            String?
+  ctaText           String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -132,6 +134,7 @@ model CaseStudy {
   client          String?
   service         String?
   category        String?
+  videoUrl        String?
   position        Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
