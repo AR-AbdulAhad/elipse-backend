@@ -20,8 +20,23 @@ const CACHE_SECONDS = 86400; // 24 h
 
 const escXml = (s = '') => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+function normalizeUrl(urlOrPath) {
+  if (!urlOrPath) return SITE_URL;
+  if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+    try {
+      const parsed = new URL(urlOrPath);
+      return `${SITE_URL}${parsed.pathname}`;
+    } catch (e) {
+      return urlOrPath;
+    }
+  }
+  const cleanPath = urlOrPath.startsWith('/') ? urlOrPath : '/' + urlOrPath;
+  return `${SITE_URL}${cleanPath}`;
+}
+
 function formatUrlXml({ loc, lastmod, changefreq = 'monthly', priority = '0.7' }) {
-  let xml = `  <url>\n    <loc>${escXml(loc)}</loc>`;
+  const finalLoc = normalizeUrl(loc);
+  let xml = `  <url>\n    <loc>${escXml(finalLoc)}</loc>`;
   if (lastmod) xml += `\n    <lastmod>${new Date(lastmod).toISOString().split('T')[0]}</lastmod>`;
   xml += `\n    <changefreq>${changefreq}</changefreq>`;
   xml += `\n    <priority>${priority}</priority>`;
@@ -132,7 +147,7 @@ router.get('/sitemap.xml', (_req, res) => {
 router.get('/pages_sitemap.xml', (_req, res) => {
   const urls = STATIC_URLS.map((item) =>
     formatUrlXml({
-      loc: `${SITE_URL}${item.url}`,
+      loc: item.url,
       changefreq: item.changefreq,
       priority: item.priority,
     })
@@ -158,7 +173,7 @@ router.get('/projects_sitemap.xml', async (_req, res) => {
 
     const urls = projects.map((p) =>
       formatUrlXml({
-        loc: `${SITE_URL}${p.path}`,
+        loc: p.path,
         lastmod: p.updatedAt || p.createdAt,
         changefreq: 'monthly',
         priority: '0.8',
@@ -189,7 +204,7 @@ router.get('/blogs_sitemap.xml', async (_req, res) => {
 
     const urls = blogs.map((b) =>
       formatUrlXml({
-        loc: `${SITE_URL}/blog/${b.slug}`,
+        loc: `/blog/${b.slug}`,
         lastmod: b.updatedAt || b.createdAt,
         changefreq: 'monthly',
         priority: '0.7',
@@ -220,7 +235,7 @@ router.get('/casestudies_sitemap.xml', async (_req, res) => {
 
     const urls = caseStudies.map((cs) =>
       formatUrlXml({
-        loc: `${SITE_URL}/case-study/${cs.slug}`,
+        loc: `/case-study/${cs.slug}`,
         lastmod: cs.updatedAt || cs.createdAt,
         changefreq: 'monthly',
         priority: '0.7',
