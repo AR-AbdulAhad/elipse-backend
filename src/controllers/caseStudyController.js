@@ -27,7 +27,9 @@ const buildUrl = (val, req) => {
 
 const getCaseStudies = async (req, res) => {
   try {
-    const all = await prisma.caseStudy.findMany({ orderBy: { position: 'asc' } });
+    const where = {};
+    if (req.query.featured === 'true') where.featured = true;
+    const all = await prisma.caseStudy.findMany({ where, orderBy: { position: 'asc' } });
     const withUrls = all.map(c => ({
       ...c,
       largeBanner: c.largeBanner ? buildUrl(c.largeBanner, req) : c.largeBanner,
@@ -57,7 +59,7 @@ const getCaseStudyBySlug = async (req, res) => {
 
 const createCaseStudy = async (req, res) => {
   try {
-    const { title, metaTitle, metaDescription, slug, largeBanner, smallBanner, content, client, service, category, videoUrl } = req.body;
+    const { title, metaTitle, metaDescription, slug, largeBanner, smallBanner, content, client, service, category, videoUrl, featured } = req.body;
     const normalize = (val) => {
       if (!val) return val;
       return val.replace(/^https?:\/\/[^/]+/, '');
@@ -76,6 +78,7 @@ const createCaseStudy = async (req, res) => {
         service: service || null,
         category: category || null,
         videoUrl: videoUrl || null,
+        featured: featured === true || featured === 'true',
         position: 0,
       }
     });

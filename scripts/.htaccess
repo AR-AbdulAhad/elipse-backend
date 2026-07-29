@@ -1,0 +1,25 @@
+# ============================================================
+# Hostinger Node.js Backend — CORS + OPTIONS Fix
+# Yeh file backend ki public_html root mein honi chahiye
+# ============================================================
+
+# 1. OPTIONS method allow karo (Apache isko block karta hai by default)
+<Limit OPTIONS>
+  Order Allow,Deny
+  Allow from all
+</Limit>
+
+# 2. CORS headers Apache level par set karo
+<IfModule mod_headers.c>
+  Header always set Access-Control-Allow-Origin "*"
+  Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  Header always set Access-Control-Allow-Headers "Content-Type, Authorization, Accept"
+  Header always set Access-Control-Max-Age "86400"
+</IfModule>
+
+# 3. OPTIONS preflight ko seedha 200 return karo
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_METHOD} OPTIONS
+  RewriteRule ^(.*)$ $1 [R=200,L]
+</IfModule>
