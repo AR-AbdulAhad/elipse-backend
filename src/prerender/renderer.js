@@ -61,7 +61,7 @@ const renderPage = async (path) => {
     });
 
     await page.setUserAgent(
-      'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+      'Mozilla/5.0 (compatible; ElipsePrerenderer/1.0; +https://elipsestudio.com)'
     );
 
     await page.goto(url, {
