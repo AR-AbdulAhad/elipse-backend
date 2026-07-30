@@ -52,6 +52,8 @@ const isSocialBot = (userAgent = '') => {
 };
 
 const { prerenderMiddleware } = require('./src/middleware/prerenderMiddleware');
+const { initCache, getCache } = require('./src/prerender/cache');
+const { renderPage, getRenderStats, closeBrowser } = require('./src/prerender/renderer');
 
 // Helper: Always return canonical frontend website URL (https://elipsestudio.com)
 const getSiteUrl = () => (process.env.FRONTEND_URL || process.env.SITE_URL || 'https://elipsestudio.com').replace(/\/+$/, '');
@@ -127,6 +129,66 @@ app.use((req, res, next) => {
 
 // ── Dynamic Sitemap ──────────────────────────────────────────────────────────
 app.use(sitemapRoute);
+
+// ── Prerender Admin Routes ───────────────────────────────────────────────────
+// Internal endpoints for health checks and cache management.
+// These must be defined before the prerender middleware to avoid interception.
+app.get('/prerender/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    stats: getRenderStats(),
+  });
+});
+
+app.get('/prerender/render', async (req, res) => {
+  const targetPath = req.query.url || req.query.path || '/';
+  if (!targetPath || targetPath === '/favicon.ico') {
+    return res.status(400).json({ error: 'Missing ?url= or ?path= query parameter' });
+  }
+  const result = await renderPage(targetPath);
+  if (result.error) {
+    return res.status(502).json({ error: result.error });
+  }
+  res.set({
+    'Content-Type': 'text/html; charset=utf-8',
+    'X-Renderer': 'elipse-prerender-internal',
+    'X-Cache': result.fromCache ? 'HIT' : 'MISS',
+    'Cache-Control': 'no-cache',
+  });
+  res.send(result.html);
+});
+
+app.get('/render', async (req, res) => {
+  const targetPath = req.query.url || req.query.path || '/';
+  if (!targetPath || targetPath === '/favicon.ico') {
+    return res.status(400).json({ error: 'Missing ?url= or ?path= query parameter' });
+  }
+  const result = await renderPage(targetPath);
+  if (result.error) {
+    return res.status(502).json({ error: result.error });
+  }
+  res.set({
+    'Content-Type': 'text/html; charset=utf-8',
+    'X-Renderer': 'elipse-prerender-internal',
+    'X-Cache': result.fromCache ? 'HIT' : 'MISS',
+    'Cache-Control': 'no-cache',
+  });
+  res.send(result.html);
+});
+
+app.post('/prerender/invalidate', (req, res) => {
+  const { path } = req.body;
+  if (!path) return res.status(400).json({ error: 'Missing path' });
+  getCache().invalidate(`prerender:${path}`);
+  res.json({ invalidated: true, path });
+});
+
+app.post('/prerender/flush', async (_req, res) => {
+  await getCache().flush();
+  res.json({ flushed: true });
+});
 
 // ── Prerender Middleware ─────────────────────────────────────────────────────
 // Catches search engine bots (Googlebot, Bingbot, etc.) and serves them
@@ -415,7 +477,29 @@ app.use((req, res) => {
 });
 
 // ── Start Server ────────────────────────────────────────────────────────────
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ API Server listening on http://0.0.0.0:${PORT}`);
-  console.log(`✅ Health Check: http://127.0.0.1:${PORT}/status`);
+const startServer = async () => {
+  await initCache();
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ API & Prerender Server listening on http://0.0.0.0:${PORT}`);
+    console.log(`✅ Health Check: http://127.0.0.1:${PORT}/status`);
+    console.log(`✅ Prerender Health Check: http://127.0.0.1:${PORT}/prerender/health`);
+  });
+};
+
+startServer().catch((err) => {
+  console.error('❌ Failed to start server:', err);
+  process.exit(1);
+});
+
+// ── Graceful Shutdown ───────────────────────────────────────────────────────
+process.on('SIGINT', async () => {
+  console.log('\nShutting down backend server...');
+  await closeBrowser();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\nShutting down backend server...');
+  await closeBrowser();
+  process.exit(0);
 });
