@@ -113,11 +113,66 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/social-media', socialMediaRoutes);
 app.use('/api/case-studies', caseStudyRoutes);
 
+// ── robots.txt ───────────────────────────────────────────────────────────────
+app.get('/robots.txt', (req, res) => {
+  res.set('Content-Type', 'text/plain; charset=utf-8');
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.send(`User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /prerender/
+Disallow: /render
+Allow: /
+
+Sitemap: https://elipsestudio.com/sitemap.xml
+`);
+});
+
+
+// ── 301 Redirects: Legacy URLs → New Canonical URLs ──────────────────────────
+// These are known orphan / old URLs still indexed in Google.
+const legacyRedirects = [
+  // Old project URLs → new slugs
+  { from: '/Kia_Configurator_Elipse', to: '/project/kia-configurator' },
+  { from: '/Kia_Configurator_Elipse/', to: '/project/kia-configurator' },
+  { from: '/kia_configurator_elipse', to: '/project/kia-configurator' },
+
+  // Old service URLs → new canonical
+  { from: '/services/webdevelopment', to: '/services/website-development' },
+  { from: '/services/webdevelopment/', to: '/services/website-development' },
+  { from: '/services/web-development', to: '/services/website-development' },
+  { from: '/services/app-dev', to: '/services/mobile-app-development' },
+  { from: '/services/vr-ar', to: '/services/vr-development' },
+  { from: '/services/visualization', to: '/services/architectural-visualization' },
+  { from: '/services/configurators', to: '/services/3d-product-configurators' },
+
+  // Old blog/page slugs
+  { from: '/blogs', to: '/blog' },
+  { from: '/our-work', to: '/portfolio' },
+  { from: '/work', to: '/portfolio' },
+  { from: '/capabilities', to: '/about' },
+];
+
+app.use((req, res, next) => {
+  const p = req.path.toLowerCase().replace(/\/+$/, '') || '/';
+  const match = legacyRedirects.find(r => r.from.toLowerCase() === p);
+  if (match) {
+    return res.redirect(301, match.to);
+  }
+  next();
+});
+
 // ── 410 Gone: Junk/spam URL families — terminal status, never redirect ───────
 // Googlebot must see 410/404 to drop these from the index.
 app.use((req, res, next) => {
   const p = req.path.toLowerCase();
-  const spamPaths = ['/products/', '/ctg/', '/wp-', '/tpc/', '/xmlrpc.php', '/wp-json/', '/wp-login.php', '/wp-admin', '/feed', '/trackback', '/author/', '/page/'];
+  const spamPaths = [
+    '/products/', '/ctg/', '/wp-', '/tpc/', '/xmlrpc.php',
+    '/wp-json/', '/wp-login.php', '/wp-admin', '/feed',
+    '/trackback', '/author/', '/page/', '/cgi-bin/',
+    '/.env', '/.git', '/config.php', '/readme.html',
+    '/license.txt', '/wp-content/', '/wp-includes/',
+  ];
   if (spamPaths.some(sp => p.startsWith(sp) || p.includes(sp))) {
     return res.status(410).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Gone | Elipse Studio</title><meta name="robots" content="noindex"></head><body><p>This URL is no longer available.</p></body></html>`);
   }
@@ -130,6 +185,7 @@ app.use((req, res, next) => {
 
 // ── Dynamic Sitemap ──────────────────────────────────────────────────────────
 app.use(sitemapRoute);
+
 
 // ── Prerender Admin Routes ───────────────────────────────────────────────────
 // Internal endpoints for health checks and cache management.

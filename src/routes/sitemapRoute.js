@@ -75,19 +75,10 @@ const STATIC_URLS = [
   { url: '/services/enterprise-solutions', changefreq: 'monthly', priority: '0.9' },
   { url: '/services/marketing', changefreq: 'monthly', priority: '0.9' },
 
-  // ── 4. Industry pages (12) ──
-  { url: '/industries/real-estate', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/architecture', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/interior-design', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/manufacturing', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/ecommerce', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/automotive', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/furniture', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/healthcare', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/education-training', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/construction', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/energy-utilities', changefreq: 'monthly', priority: '0.9' },
-  { url: '/industries/hospitality', changefreq: 'monthly', priority: '0.9' },
+  // ── 4. Industry hub page (the sub-pages /industries/* are 301 redirects
+  //       to service pages — they have no real content so we exclude them
+  //       from sitemap to avoid wasting crawl budget on redirect chains)
+  { url: '/industries', changefreq: 'monthly', priority: '0.8' },
 
   // ── 5. Hardcoded blog articles ──
   { url: '/blog/web-based-configurator', changefreq: 'monthly', priority: '0.6' },
@@ -104,6 +95,7 @@ const STATIC_URLS = [
   { url: '/blog/3d-real-time-configurators-real-estate-dubai', changefreq: 'monthly', priority: '0.6' },
   { url: '/blog/architectural-visualization-guide', changefreq: 'monthly', priority: '0.6' },
   { url: '/blog/apparel-configurator-fashion-brands-2026', changefreq: 'monthly', priority: '0.6' },
+
 ];
 
 // 1. GET /sitemap.xml (Sitemap Index)
