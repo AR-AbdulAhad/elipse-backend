@@ -29,10 +29,9 @@ console.log(
 const app = express();
 const PORT = process.env.PORT || 5003;
 
-// ── Social Bot Detection Helper ──────────────────────────────────────────────
-// WhatsApp, Facebook, LinkedIn, Twitter bots don't run JS.
-// We detect them and return a lightweight HTML page with dynamic meta tags.
-// CRITICAL FIX: googlebot and bingbot are EXCLUDED so search engines crawl normally
+// ── Bot/Crawler Detection Helpers ──────────────────────────────────────────
+// isSocialBot: lightweight meta-tag-only response for social media crawlers
+// isCrawler: full prerender via Puppeteer for search engine bots
 const isSocialBot = (userAgent = '') => {
   const ua = userAgent.toLowerCase();
   return (
@@ -51,6 +50,8 @@ const isSocialBot = (userAgent = '') => {
     ua.includes('pinterest')
   );
 };
+
+const { prerenderMiddleware } = require('./src/middleware/prerenderMiddleware');
 
 // Helper: Always return canonical frontend website URL (https://elipsestudio.com)
 const getSiteUrl = () => (process.env.FRONTEND_URL || process.env.SITE_URL || 'https://elipsestudio.com').replace(/\/+$/, '');
@@ -126,6 +127,12 @@ app.use((req, res, next) => {
 
 // ── Dynamic Sitemap ──────────────────────────────────────────────────────────
 app.use(sitemapRoute);
+
+// ── Prerender Middleware ─────────────────────────────────────────────────────
+// Catches search engine bots (Googlebot, Bingbot, etc.) and serves them
+// fully-rendered HTML from the prerender server (Puppeteer).
+// Falls through to social bot routes if prerender server is unavailable.
+app.use(prerenderMiddleware);
 
 // ── Social Bot: Static Pages Meta Tags ─────────────────────────────────────────
 const staticPagesMeta = {
