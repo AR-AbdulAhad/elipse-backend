@@ -89,15 +89,7 @@ const STATIC_URLS = [
   { url: '/industries/energy-utilities', changefreq: 'monthly', priority: '0.9' },
   { url: '/industries/hospitality', changefreq: 'monthly', priority: '0.9' },
 
-  // ── 5. Legacy redirects ──
-  { url: '/services/web-configurators', changefreq: 'monthly', priority: '0.3' },
-  { url: '/services/vr', changefreq: 'monthly', priority: '0.3' },
-  { url: '/services/ar', changefreq: 'monthly', priority: '0.3' },
-  { url: '/services/app-development', changefreq: 'monthly', priority: '0.3' },
-  { url: '/services/animation', changefreq: 'monthly', priority: '0.3' },
-  { url: '/blogs', changefreq: 'monthly', priority: '0.3' },
-
-  // ── 6. Hardcoded blog articles ──
+  // ── 5. Hardcoded blog articles ──
   { url: '/blog/web-based-configurator', changefreq: 'monthly', priority: '0.6' },
   { url: '/blog/immersive-ar-marketing', changefreq: 'monthly', priority: '0.6' },
   { url: '/blog/industrial-animation', changefreq: 'monthly', priority: '0.6' },

@@ -58,10 +58,20 @@ const getSiteUrl = () => (process.env.FRONTEND_URL || process.env.SITE_URL || 'h
 // ── Middleware ──────────────────────────────────────────────────────────────
 app.use(compression());
 
-// CORS — allow elipsestudio.com (and any origin) to reach this API
+// CORS — restrict to known frontend origins
+const allowedOrigins = [
+  'https://elipsestudio.com',
+  'https://www.elipsestudio.com',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
 const corsOptions = {
   origin: function (origin, callback) {
-    callback(null, true);
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -99,16 +109,17 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/social-media', socialMediaRoutes);
 app.use('/api/case-studies', caseStudyRoutes);
 
-// ── 301 Redirect: Old spam / ghost pages → homepage ───────────────────────────
+// ── 410 Gone: Junk/spam URL families — terminal status, never redirect ───────
+// Googlebot must see 410/404 to drop these from the index.
 app.use((req, res, next) => {
   const p = req.path.toLowerCase();
   const spamPaths = ['/products/', '/ctg/', '/wp-', '/tpc/', '/xmlrpc.php', '/wp-json/', '/wp-login.php', '/wp-admin', '/feed', '/trackback', '/author/', '/page/'];
   if (spamPaths.some(sp => p.startsWith(sp) || p.includes(sp))) {
-    return res.redirect(301, 'https://elipsestudio.com/');
+    return res.status(410).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Gone | Elipse Studio</title><meta name="robots" content="noindex"></head><body><p>This URL is no longer available.</p></body></html>`);
   }
   const q = req.originalUrl.toLowerCase();
   if (q.includes('ctgitemcd') || q.includes('similarimagesearch') || q.includes('mycatalog') || /[?&](p|s|page_id|cat|author)=/.test(q)) {
-    return res.redirect(301, 'https://elipsestudio.com/');
+    return res.status(410).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Gone | Elipse Studio</title><meta name="robots" content="noindex"></head><body><p>This URL is no longer available.</p></body></html>`);
   }
   next();
 });
@@ -389,6 +400,10 @@ app.get('/case-study/:slug', async (req, res, next) => {
 
 // ── 404 for everything else ─────────────────────────────────────────────────
 app.use((req, res) => {
+  const wantsHtml = req.accepts('html') && !req.path.startsWith('/api/');
+  if (wantsHtml) {
+    return res.status(404).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Not Found | Elipse Studio</title><meta name="robots" content="noindex"></head><body><p>Page not found.</p></body></html>`);
+  }
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 

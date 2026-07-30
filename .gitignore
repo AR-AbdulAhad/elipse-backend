@@ -6,3 +6,5 @@ node_modules
 
 # Uploads - persisted on server, never committed to Git
 uploads/
+
+scripts/
