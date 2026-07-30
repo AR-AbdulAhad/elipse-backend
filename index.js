@@ -27,6 +27,7 @@ console.log(
 );
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5003;
 
 // ── Bot/Crawler Detection Helpers ──────────────────────────────────────────
