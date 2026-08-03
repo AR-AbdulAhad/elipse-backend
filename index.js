@@ -552,17 +552,48 @@ app.use((req, res) => {
 });
 
 // ── Start Server ────────────────────────────────────────────────────────────
+let server;
+let startupPromise;
 const startServer = async () => {
-  await initCache();
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ API & Prerender Server listening on http://0.0.0.0:${PORT}`);
-    console.log(`✅ Health Check: http://127.0.0.1:${PORT}/status`);
-    console.log(`✅ Prerender Health Check: http://127.0.0.1:${PORT}/prerender/health`);
-  });
+  if (server) return server;
+  if (startupPromise) return startupPromise;
+
+  startupPromise = (async () => {
+    await initCache();
+
+    try {
+      server = await new Promise((resolve, reject) => {
+        const instance = app.listen(PORT, '0.0.0.0', () => {
+          console.log(`✅ API & Prerender Server listening on http://0.0.0.0:${PORT}`);
+          console.log(`✅ Health Check: http://127.0.0.1:${PORT}/status`);
+          console.log(`✅ Prerender Health Check: http://127.0.0.1:${PORT}/prerender/health`);
+        });
+
+        instance.once('listening', () => resolve(instance));
+        instance.once('error', (err) => {
+          if (err && err.code === 'EADDRINUSE') {
+            console.warn(`⚠️ Port ${PORT} is already in use; assuming another instance is already running.`);
+            resolve(null);
+            return;
+          }
+          reject(err);
+        });
+      });
+
+      return server;
+    } catch (err) {
+      if (err && err.code === 'EADDRINUSE') {
+        console.warn(`⚠️ Port ${PORT} is already in use; assuming another instance is already running.`);
+        return null;
+      }
+      throw err;
+    }
+  })();
+
+  return startupPromise;
 };
 
 const isVercelRuntime = Boolean(process.env.VERCEL);
-const isServerlessEntry = Boolean(process.env.NOW_REGION || process.env.VERCEL_REGION || process.env.VERCEL);
 
 if (!isVercelRuntime) {
   startServer().catch((err) => {
@@ -575,6 +606,7 @@ if (!isVercelRuntime) {
 
 module.exports = app;
 module.exports.default = app;
+module.exports.startServer = startServer;
 
 // ── Graceful Shutdown ───────────────────────────────────────────────────────
 process.on('SIGINT', async () => {
