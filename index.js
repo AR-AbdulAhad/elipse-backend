@@ -89,9 +89,34 @@ const allowedOrigins = Array.from(new Set([
   normalizeOrigin(process.env.SITE_URL),
   normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL),
 ].filter(Boolean)));
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin) return true;
+
+  try {
+    const hostname = new URL(normalizedOrigin).hostname.toLowerCase();
+    const isHostingerDomain = hostname.endsWith('.hostingersite.com') || hostname === 'hostingersite.com';
+    const isKnownDomain = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local');
+    const isAllowedHostname = allowedOrigins.some((allowed) => {
+      try {
+        return new URL(allowed).hostname.toLowerCase() === hostname;
+      } catch {
+        return false;
+      }
+    });
+
+    return isHostingerDomain || isKnownDomain || isAllowedHostname || allowedOrigins.includes(normalizedOrigin);
+  } catch {
+    return allowedOrigins.includes(normalizedOrigin);
+  }
+};
+
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
