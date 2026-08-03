@@ -1,11 +1,10 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const sharp = require('sharp');
 
 const baseUploadDir = process.env.UPLOADS_PATH || path.resolve(__dirname, '../../uploads');
 
-['blogs', 'projects', 'reviews', 'case-studies'].forEach(sub => {
+['blogs', 'projects', 'reviews'].forEach(sub => {
   const dir = path.join(baseUploadDir, sub);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -36,31 +35,15 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ storage, fileFilter, limits: { fileSize: 200 * 1024 * 1024 } });
 
-const uploadImage = async (req, res) => {
+const uploadImage = (req, res) => {
   try {
     const file = req.file || (req.files && req.files[0]);
     if (!file) return res.status(400).json({ message: 'No file uploaded' });
 
     const type = req.query.type || 'blogs';
-    const ext = path.extname(file.filename).toLowerCase();
-    const isImage = /\.(jpe?g|png|gif|webp|avif)$/.test(ext);
-    const isVideo = /\.(mp4|mov|avi|mkv|webm)$/.test(ext);
-
-    if (isImage || isVideo) {
-      if (isImage && (ext === '.png' || ext === '.jpg' || ext === '.jpeg')) {
-        const webpFilename = file.filename.replace(ext, '.webp');
-        const webpPath = path.join(baseUploadDir, type, webpFilename);
-        await sharp(file.path).webp({ quality: 80 }).toFile(webpPath);
-        fs.unlinkSync(file.path);
-        const url = `/uploads/${type}/${webpFilename}`;
-        return res.json({ url });
-      }
-
-      const url = `/uploads/${type}/${file.filename}`;
-      return res.json({ url });
-    }
-
     const url = `/uploads/${type}/${file.filename}`;
+
+    console.log('Upload saved:', file.path);
     res.json({ url });
   } catch (error) {
     console.error('Upload error:', error);
