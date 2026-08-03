@@ -71,6 +71,8 @@ const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
 const knownOrigins = [
   'https://elipsestudio.com',
   'https://www.elipsestudio.com',
+  'https://pink-toad-569074.hostingersite.com',
+  'https://www.pink-toad-569074.hostingersite.com',
   'https://mediumseagreen-crocodile-699024.hostingersite.com',
   'https://www.mediumseagreen-crocodile-699024.hostingersite.com',
   'http://localhost:5173',
