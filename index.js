@@ -133,8 +133,8 @@ app.use('/api/case-studies', caseStudyRoutes);
 
 // ── robots.txt ───────────────────────────────────────────────────────────────
 app.get('/robots.txt', (req, res) => {
-  res.set('Content-Type', 'text/plain; charset=utf-8');
-  res.set('Cache-Control', 'public, max-age=86400');
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(`User-agent: *
 Disallow: /admin/
 Disallow: /api/
@@ -143,7 +143,11 @@ Disallow: /render
 Allow: /
 
 Sitemap: https://elipsestudio.com/sitemap.xml
-`);
+Sitemap: https://elipsestudio.com/pages_sitemap.xml
+Sitemap: https://elipsestudio.com/projects_sitemap.xml
+Sitemap: https://elipsestudio.com/blogs_sitemap.xml
+Sitemap: https://elipsestudio.com/casestudies_sitemap.xml
+  `);
 });
 
 

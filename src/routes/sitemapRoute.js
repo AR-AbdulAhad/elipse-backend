@@ -122,7 +122,7 @@ router.get('/sitemap.xml', (_req, res) => {
   </sitemap>
 </sitemapindex>`;
 
-  res.set('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Content-Type', 'text/xml');
   res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
   res.send(indexXml);
 });
@@ -142,7 +142,7 @@ router.get('/pages_sitemap.xml', (_req, res) => {
 ${urls.join('\n')}
 </urlset>`;
 
-  res.set('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Content-Type', 'text/xml');
   res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
   res.send(xml);
 });
@@ -169,7 +169,7 @@ router.get('/projects_sitemap.xml', async (_req, res) => {
 ${urls.join('\n')}
 </urlset>`;
 
-    res.set('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Type', 'text/xml');
     res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
     res.send(xml);
   } catch (err) {
@@ -200,7 +200,7 @@ router.get('/blogs_sitemap.xml', async (_req, res) => {
 ${urls.join('\n')}
 </urlset>`;
 
-    res.set('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Type', 'text/xml');
     res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
     res.send(xml);
   } catch (err) {
@@ -231,7 +231,7 @@ router.get('/casestudies_sitemap.xml', async (_req, res) => {
 ${urls.join('\n')}
 </urlset>`;
 
-    res.set('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Type', 'text/xml');
     res.set('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
     res.send(xml);
   } catch (err) {
