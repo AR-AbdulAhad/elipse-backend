@@ -54,17 +54,31 @@ const isSocialBot = (userAgent = '') => {
 // ── Middleware ──────────────────────────────────────────────────────────────
 app.use(compression());
 
-// CORS — allow elipsestudio.com (and any origin) to reach this API
+// CORS — allow the frontend and backend hosts explicitly so browser requests work on Hostinger.
+const allowedOrigins = [
+  'https://aqua-chinchilla-205103.hostingersite.com',
+  'https://mediumseagreen-crocodile-699024.hostingersite.com',
+  'https://elipsestudio.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'http://localhost:5003',
+  'http://127.0.0.1:5003',
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    // and any browser origin
-    callback(null, true);
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
