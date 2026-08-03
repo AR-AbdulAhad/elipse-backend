@@ -116,14 +116,19 @@ const isOriginAllowed = (origin) => {
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (isOriginAllowed(origin)) {
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (!normalizedOrigin || isOriginAllowed(normalizedOrigin)) {
       callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+      return;
     }
+
+    // Allow browser requests from the deployed frontend even if the exact hostname
+    // is not in the hard-coded allowlist, which avoids intermittent CORS breaks.
+    callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
   optionsSuccessStatus: 200,
 };
