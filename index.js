@@ -62,13 +62,31 @@ const getSiteUrl = () => (process.env.FRONTEND_URL || process.env.SITE_URL || 'h
 // ── Middleware ──────────────────────────────────────────────────────────────
 app.use(compression());
 
-// CORS — restrict to known frontend origins
-const allowedOrigins = [
+// CORS — restrict to known frontend origins and allow deployment-specific origins via env.
+const normalizeOrigin = (value) => (value ? String(value).trim().replace(/\/+$/, '') : '');
+const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(normalizeOrigin)
+  .filter(Boolean);
+const knownOrigins = [
   'https://elipsestudio.com',
   'https://www.elipsestudio.com',
+  'https://mediumseagreen-crocodile-699024.hostingersite.com',
+  'https://www.mediumseagreen-crocodile-699024.hostingersite.com',
   'http://localhost:5173',
   'http://localhost:4173',
+  // Next.js dev server
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
 ];
+const allowedOrigins = Array.from(new Set([
+  ...knownOrigins,
+  ...configuredOrigins,
+  normalizeOrigin(process.env.FRONTEND_URL),
+  normalizeOrigin(process.env.SITE_URL),
+  normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL),
+].filter(Boolean)));
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
@@ -543,10 +561,20 @@ const startServer = async () => {
   });
 };
 
-startServer().catch((err) => {
-  console.error('❌ Failed to start server:', err);
-  process.exit(1);
-});
+const isVercelRuntime = Boolean(process.env.VERCEL);
+const isServerlessEntry = Boolean(process.env.NOW_REGION || process.env.VERCEL_REGION || process.env.VERCEL);
+
+if (!isVercelRuntime) {
+  startServer().catch((err) => {
+    console.error('❌ Failed to start server:', err);
+    process.exit(1);
+  });
+} else {
+  console.log('🌐 Vercel runtime detected — exporting Express app as serverless handler');
+}
+
+module.exports = app;
+module.exports.default = app;
 
 // ── Graceful Shutdown ───────────────────────────────────────────────────────
 process.on('SIGINT', async () => {

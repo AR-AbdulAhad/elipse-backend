@@ -92,7 +92,7 @@ const renderPage = async (path) => {
     console.error('[prerender] Error rendering %s:', path, err.message);
     return { html: null, error: err.message, fromCache: false };
   } finally {
-    await page.close().catch(() => {});
+    await page.close().catch(() => { });
   }
 };
 
