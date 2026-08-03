@@ -595,13 +595,15 @@ const startServer = async () => {
 
 const isVercelRuntime = Boolean(process.env.VERCEL);
 
-if (!isVercelRuntime) {
-  startServer().catch((err) => {
-    console.error('❌ Failed to start server:', err);
-    process.exit(1);
-  });
-} else {
-  console.log('🌐 Vercel runtime detected — exporting Express app as serverless handler');
+if (require.main === module) {
+  if (!isVercelRuntime) {
+    startServer().catch((err) => {
+      console.error('❌ Failed to start server:', err);
+      process.exit(1);
+    });
+  } else {
+    console.log('🌐 Vercel runtime detected — exporting Express app as serverless handler');
+  }
 }
 
 module.exports = app;
