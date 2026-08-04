@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "prisma generate",
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
@@ -12,7 +13,7 @@
   "license": "ISC",
   "type": "commonjs",
   "engines": {
-    "node": ">=20.6.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
