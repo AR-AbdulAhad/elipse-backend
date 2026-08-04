@@ -16,7 +16,6 @@ const seedRoutes = require('./src/routes/seedRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const socialMediaRoutes = require('./src/routes/socialMediaRoutes');
 const caseStudyRoutes = require('./src/routes/caseStudyRoutes');
-const sitemapRoute = require('./src/routes/sitemapRoute');
 
 // Connect to Database
 connectDB();
@@ -32,7 +31,6 @@ const PORT = process.env.PORT || 5003;
 // ── Social Bot Detection Helper ──────────────────────────────────────────────
 // WhatsApp, Facebook, LinkedIn, Twitter bots don't run JS.
 // We detect them and return a lightweight HTML page with dynamic meta tags.
-// CRITICAL FIX: googlebot and bingbot are EXCLUDED so search engines crawl normally
 const isSocialBot = (userAgent = '') => {
   const ua = userAgent.toLowerCase();
   return (
@@ -43,6 +41,8 @@ const isSocialBot = (userAgent = '') => {
     ua.includes('slackbot') ||
     ua.includes('telegrambot') ||
     ua.includes('discordbot') ||
+    ua.includes('googlebot') ||
+    ua.includes('bingbot') ||
     ua.includes('applebot') ||
     ua.includes('ia_archiver') ||
     ua.includes('embedly') ||
@@ -52,16 +52,55 @@ const isSocialBot = (userAgent = '') => {
   );
 };
 
-// Helper: Always return canonical frontend website URL (https://elipsestudio.com)
-const getSiteUrl = () => (process.env.FRONTEND_URL || process.env.SITE_URL || 'https://elipsestudio.com').replace(/\/+$/, '');
+// ── Multi-domain Site URL Helper ────────────────────────────────────────────
+// This backend serves TWO frontends:
+//   1) https://elipsestudio.com          (main site)
+//   2) https://aqua-chinchilla-205103.hostingersite.com  (Hostinger site)
+// The site URL is detected from the incoming request Host header so the
+// social-bot meta tags (og:url, canonical, redirect) always point at the
+// correct frontend domain instead of being hardcoded to one site.
+const MAIN_SITE_URL = process.env.ELIPSE_SITE_URL || 'https://elipsestudio.com';
+const getSiteUrl = (req) => {
+  const host = (req.get('host') || '').toLowerCase();
+  if (host.includes('elipsestudio.com')) return MAIN_SITE_URL;
+  if (host.includes('hostingersite.com')) return `https://${host}`;
+  if (host.startsWith('localhost') || host.startsWith('127.')) return `http://${host}`;
+  return process.env.SITE_URL || process.env.FRONTEND_URL || MAIN_SITE_URL;
+};
 
 // ── Middleware ──────────────────────────────────────────────────────────────
 app.use(compression());
 
-// CORS — allow elipsestudio.com (and any origin) to reach this API
+// CORS — this backend is shared by multiple frontends:
+//   - localhost dev (Next.js on :3000, Vite on :5173)
+//   - https://elipsestudio.com (+ www + http)
+//   - any *.hostingersite.com preview domain (e.g. aqua-chinchilla-205103)
+const FRONTEND_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'https://elipsestudio.com',
+  'https://www.elipsestudio.com',
+  'http://elipsestudio.com',
+  'http://www.elipsestudio.com',
+];
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // same-origin / curl / server-to-server
+  if (FRONTEND_ORIGINS.includes(origin)) return true;
+  try {
+    if (new URL(origin).hostname.endsWith('.hostingersite.com')) return true;
+  } catch {
+    return false;
+  }
+  return false;
+};
+
 const corsOptions = {
-  origin: function (origin, callback) {
-    callback(null, true);
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    return callback(null, false);
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -70,7 +109,10 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// Explicitly handle preflight for all routes
 app.options('*', cors(corsOptions));
+
 app.use(express.json());
 
 // ── Health Check ────────────────────────────────────────────────────────────
@@ -98,23 +140,6 @@ app.use('/api/seed', seedRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/social-media', socialMediaRoutes);
 app.use('/api/case-studies', caseStudyRoutes);
-
-// ── 301 Redirect: Old spam / ghost pages → homepage ───────────────────────────
-app.use((req, res, next) => {
-  const p = req.path.toLowerCase();
-  const spamPaths = ['/products/', '/ctg/', '/wp-', '/tpc/', '/xmlrpc.php', '/wp-json/', '/wp-login.php', '/wp-admin', '/feed', '/trackback', '/author/', '/page/'];
-  if (spamPaths.some(sp => p.startsWith(sp) || p.includes(sp))) {
-    return res.redirect(301, 'https://elipsestudio.com/');
-  }
-  const q = req.originalUrl.toLowerCase();
-  if (q.includes('ctgitemcd') || q.includes('similarimagesearch') || q.includes('mycatalog') || /[?&](p|s|page_id|cat|author)=/.test(q)) {
-    return res.redirect(301, 'https://elipsestudio.com/');
-  }
-  next();
-});
-
-// ── Dynamic Sitemap ──────────────────────────────────────────────────────────
-app.use(sitemapRoute);
 
 // ── Social Bot: Static Pages Meta Tags ─────────────────────────────────────────
 const staticPagesMeta = {
@@ -156,7 +181,7 @@ app.get('/:page(about|services|capabilities|portfolio|case-studies|contact|blog)
   const meta = staticPagesMeta[page];
   if (!meta) return next();
 
-  const siteUrl = getSiteUrl();
+  const siteUrl = getSiteUrl(req);
   const pageUrl = `${siteUrl}/${page}`;
   const image = `${siteUrl}/assets/og-image.png`;
 
@@ -196,21 +221,25 @@ app.get('/:page(about|services|capabilities|portfolio|case-studies|contact|blog)
 });
 
 // ── Social Bot: Dynamic Blog Meta Tags ──────────────────────────────────────
+// When WhatsApp / Facebook / LinkedIn bots crawl a blog URL they get a
+// server-rendered HTML page with correct og: and twitter: meta tags.
+// Regular browsers are NOT affected — they still get a 404 from the API
+// (the SPA handles routing on the frontend).
 const prisma = require('./src/config/prisma');
 
 app.get('/blog/:slug', async (req, res, next) => {
   const ua = req.headers['user-agent'] || '';
-  if (!isSocialBot(ua)) return next();
+  if (!isSocialBot(ua)) return next(); // normal user → skip
 
   try {
     const blog = await prisma.blog.findUnique({ where: { slug: req.params.slug } });
 
-    const siteUrl = getSiteUrl();
-    const backendBaseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
+    const siteUrl = getSiteUrl(req);
+    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return `${siteUrl}/assets/og-image.png`;
       if (val.startsWith('http')) return val;
-      return `${backendBaseUrl}${val.startsWith('/') ? val : '/' + val}`;
+      return `${baseUrl}${val.startsWith('/') ? val : '/' + val}`;
     };
 
     if (!blog) {
@@ -223,6 +252,7 @@ app.get('/blog/:slug', async (req, res, next) => {
     const image = buildUrl(blog.image);
     const pageUrl = `${siteUrl}/blog/${blog.slug}`;
 
+    // Escape helper to prevent XSS in meta content
     const esc = (str = '') => String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     return res.send(`<!DOCTYPE html>
@@ -271,12 +301,12 @@ app.get('/project/:path(*)', async (req, res, next) => {
     const fullPath = '/project/' + req.params.path;
     const project = await prisma.project.findUnique({ where: { path: fullPath } });
 
-    const siteUrl = getSiteUrl();
-    const backendBaseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
+    const siteUrl = getSiteUrl(req);
+    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return `${siteUrl}/assets/og-image.png`;
       if (val.startsWith('http')) return val;
-      return `${backendBaseUrl}${val.startsWith('/') ? val : '/' + val}`;
+      return `${baseUrl}${val.startsWith('/') ? val : '/' + val}`;
     };
 
     if (!project) {
@@ -325,64 +355,6 @@ app.get('/project/:path(*)', async (req, res, next) => {
 </html>`);
   } catch (err) {
     console.error('Project bot meta route error:', err);
-    return next();
-  }
-});
-
-// ── Social Bot: Dynamic Case Study Meta Tags ────────────────────────────────
-app.get('/case-study/:slug', async (req, res, next) => {
-  const ua = req.headers['user-agent'] || '';
-  if (!isSocialBot(ua)) return next();
-
-  try {
-    const cs = await prisma.caseStudy.findUnique({ where: { slug: req.params.slug } });
-
-    const siteUrl = getSiteUrl();
-    const backendBaseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
-    const buildUrl = (val) => {
-      if (!val) return `${siteUrl}/assets/og-image.png`;
-      if (val.startsWith('http')) return val;
-      return `${backendBaseUrl}${val.startsWith('/') ? val : '/' + val}`;
-    };
-
-    if (!cs) {
-      return res.status(404).send(`<!DOCTYPE html><html><head><title>Not Found | Elipse Studio</title></head><body></body></html>`);
-    }
-
-    const seoTitle = cs.metaTitle || cs.title;
-    const title = `${seoTitle} | Elipse Studio`;
-    const rawDesc = cs.content ? cs.content.replace(/<[^>]*>/g, '') : `Read about ${cs.title} at Elipse Studio`;
-    const desc = cs.metaDescription || rawDesc.slice(0, 160);
-    const image = buildUrl(cs.largeBanner || cs.smallBanner);
-    const pageUrl = `${siteUrl}/case-study/${cs.slug}`;
-
-    const esc = (str = '') => String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    return res.send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${esc(title)}</title>
-  <meta name="description" content="${esc(desc)}" />
-  <meta property="og:type" content="article" />
-  <meta property="og:title" content="${esc(title)}" />
-  <meta property="og:description" content="${esc(desc)}" />
-  <meta property="og:image" content="${esc(image)}" />
-  <meta property="og:url" content="${esc(pageUrl)}" />
-  <meta property="og:site_name" content="Elipse Studio" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${esc(title)}" />
-  <meta name="twitter:description" content="${esc(desc)}" />
-  <meta name="twitter:image" content="${esc(image)}" />
-  <link rel="canonical" href="${esc(pageUrl)}" />
-  <meta http-equiv="refresh" content="0;url=${esc(pageUrl)}" />
-</head>
-<body>
-  <p>Redirecting to <a href="${esc(pageUrl)}">${esc(title)}</a>…</p>
-</body>
-</html>`);
-  } catch (err) {
-    console.error('Case study bot meta route error:', err);
     return next();
   }
 });
