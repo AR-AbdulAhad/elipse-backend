@@ -72,36 +72,15 @@ const getSiteUrl = (req) => {
 app.use(compression());
 
 // CORS — this backend is shared by multiple frontends:
+//   - https://elipsestudio.com                (main site)
+//   - https://aqua-chinchilla-205103.hostingersite.com  (Hostinger site)
 //   - localhost dev (Next.js on :3000, Vite on :5173)
-//   - https://elipsestudio.com (+ www + http)
-//   - any *.hostingersite.com preview domain (e.g. aqua-chinchilla-205103)
-const FRONTEND_ORIGINS = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:5173',
-  'http://127.0.0.1:3000',
-  'https://elipsestudio.com',
-  'https://www.elipsestudio.com',
-  'http://elipsestudio.com',
-  'http://www.elipsestudio.com',
-];
-
-const isAllowedOrigin = (origin) => {
-  if (!origin) return true; // same-origin / curl / server-to-server
-  if (FRONTEND_ORIGINS.includes(origin)) return true;
-  try {
-    if (new URL(origin).hostname.endsWith('.hostingersite.com')) return true;
-  } catch {
-    return false;
-  }
-  return false;
-};
-
+// origin: true reflects the request origin back, so NO frontend domain is ever
+// blocked by CORS (including elipsestudio.com, *.hostingersite.com and any
+// future preview domains). Per-origin logic (which domain to use for meta
+// tags) is handled by getSiteUrl() via the request Host header.
 const corsOptions = {
-  origin(origin, callback) {
-    if (isAllowedOrigin(origin)) return callback(null, true);
-    return callback(null, false);
-  },
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
