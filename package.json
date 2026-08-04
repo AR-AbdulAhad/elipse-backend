@@ -11,9 +11,6 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "engines": {
-    "node": ">=20.6.0"
-  },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
@@ -28,7 +25,8 @@
     "multer": "^2.2.0",
     "mysql2": "^3.22.2",
     "nodemailer": "^9.0.1",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "sitemap": "^9.0.1"
   },
   "devDependencies": {
     "prisma": "^6.19.3"

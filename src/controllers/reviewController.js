@@ -10,7 +10,7 @@ const normalize = (val) => {
 const getReviews = async (req, res) => {
   try {
     const reviews = await prisma.review.findMany({ orderBy: { position: 'asc' } });
-    const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${process.env.PORT || 5003}`).replace(/\/+$/, '');
+    const baseUrl = (process.env.VITE_BACKEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return val;
       if (val.startsWith('http')) return val;

@@ -1,6 +1,5 @@
 const prisma = require('../config/prisma');
 const transporter = require('../config/emailConfig');
-const { appConfig } = require('../config/appConfig');
 
 const updateMeetingStatus = async (req, res) => {
   const { id } = req.params;
@@ -36,20 +35,20 @@ const updateMeetingStatus = async (req, res) => {
       console.log('📧 Preparing to send email...');
       
       const mailOptions = {
-        from: appConfig.fromEmail,
+        from: process.env.FROM_EMAIL || 'devkhalid825@gmail.com',
         to: meeting.email,
         subject: 'Meeting Request Approved - Next Steps',
         html: `
           <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-            <h2 style="color: #00FFFF; background: #000; padding: 15px; text-align: center; border-radius: 5px;">${appConfig.name.toUpperCase()}</h2>
+            <h2 style="color: #00FFFF; background: #000; padding: 15px; text-align: center; border-radius: 5px;">ELIPSE STUDIO</h2>
             <p>Hello,</p>
             <p>Great news! You have been successfully added to our <strong>Join Meeting List</strong>.</p>
             <p>The next step is to schedule your meeting. Please contact us at the number below so we can finalize the date and time:</p>
             <div style="background: #f9f9f9; padding: 15px; text-align: center; border-radius: 5px; margin: 20px 0;">
-              <span style="font-size: 18px; font-weight: bold; color: #069297;">Phone/WhatsApp: ${appConfig.contactPhone}</span>
+              <span style="font-size: 18px; font-weight: bold; color: #069297;">Phone/WhatsApp: +92 347 1245257</span>
             </div>
             <p>We look forward to speaking with you soon.</p>
-            <p>Best regards,<br><strong>Team ${appConfig.name}</strong></p>
+            <p>Best regards,<br><strong>Team Elipse Studio</strong></p>
           </div>
         `
       };
