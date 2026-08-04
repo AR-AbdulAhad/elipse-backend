@@ -4,16 +4,6 @@ const path = require('path');
 
 const uploadsDir = path.resolve(__dirname, '../../uploads');
 
-const deleteCaseStudyImageFiles = (record) => {
-  const paths = [];
-  if (record.largeBanner) paths.push(record.largeBanner.replace(/^https?:\/\/[^/]+/, ''));
-  if (record.smallBanner) paths.push(record.smallBanner.replace(/^https?:\/\/[^/]+/, ''));
-  paths.forEach((filePath) => {
-    const absPath = path.join(uploadsDir, filePath.replace(/^\/uploads\//, ''));
-    try { fs.unlinkSync(absPath); } catch {}
-  });
-};
-
 const getBaseUrl = (req) => {
   return (process.env.VITE_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
 };
@@ -25,15 +15,35 @@ const buildUrl = (val, req) => {
   return `${getBaseUrl(req)}${p}`;
 };
 
+const normalize = (val) => {
+  if (!val) return val;
+  return val.replace(/^https?:\/\/[^/]+/, '');
+};
+
+const withUrls = (caseStudy, req) => ({
+  ...caseStudy,
+  largeBanner: caseStudy.largeBanner ? buildUrl(caseStudy.largeBanner, req) : caseStudy.largeBanner,
+  smallBanner: caseStudy.smallBanner ? buildUrl(caseStudy.smallBanner, req) : caseStudy.smallBanner,
+});
+
+const deleteImageFiles = (record) => {
+  const paths = [];
+  if (record.largeBanner) paths.push(record.largeBanner.replace(/^https?:\/\/[^/]+/, ''));
+  if (record.smallBanner) paths.push(record.smallBanner.replace(/^https?:\/\/[^/]+/, ''));
+  paths.forEach((filePath) => {
+    const absPath = path.join(uploadsDir, filePath.replace(/^\/uploads\//, ''));
+    try { fs.unlinkSync(absPath); } catch {}
+  });
+};
+
 const getCaseStudies = async (req, res) => {
   try {
-    const all = await prisma.caseStudy.findMany({ orderBy: { position: 'asc' } });
-    const withUrls = all.map(c => ({
-      ...c,
-      largeBanner: c.largeBanner ? buildUrl(c.largeBanner, req) : c.largeBanner,
-      smallBanner: c.smallBanner ? buildUrl(c.smallBanner, req) : c.smallBanner,
-    }));
-    return res.json(withUrls);
+    const { featured } = req.query;
+    const caseStudies = await prisma.caseStudy.findMany({
+      where: featured === 'true' ? { featured: true } : undefined,
+      orderBy: { position: 'asc' },
+    });
+    res.json(caseStudies.map(cs => withUrls(cs, req)));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -41,15 +51,9 @@ const getCaseStudies = async (req, res) => {
 
 const getCaseStudyBySlug = async (req, res) => {
   try {
-    const slug = req.query.slug || req.params.slug;
-    const cs = await prisma.caseStudy.findUnique({ where: { slug } });
-    if (!cs) return res.status(404).json({ message: 'Case study not found' });
-    const withUrls = {
-      ...cs,
-      largeBanner: cs.largeBanner ? buildUrl(cs.largeBanner, req) : cs.largeBanner,
-      smallBanner: cs.smallBanner ? buildUrl(cs.smallBanner, req) : cs.smallBanner,
-    };
-    return res.json(withUrls);
+    const caseStudy = await prisma.caseStudy.findUnique({ where: { slug: req.query.slug } });
+    if (!caseStudy) return res.status(404).json({ message: 'Case study not found' });
+    res.json(withUrls(caseStudy, req));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -57,13 +61,22 @@ const getCaseStudyBySlug = async (req, res) => {
 
 const createCaseStudy = async (req, res) => {
   try {
-    const { title, metaTitle, metaDescription, slug, largeBanner, smallBanner, content, client, service, category } = req.body;
-    const normalize = (val) => {
-      if (!val) return val;
-      return val.replace(/^https?:\/\/[^/]+/, '');
-    };
+    const {
+      title,
+      metaTitle,
+      metaDescription,
+      slug,
+      largeBanner,
+      smallBanner,
+      content,
+      client,
+      service,
+      category,
+      videoUrl,
+      featured,
+    } = req.body;
     await prisma.caseStudy.updateMany({ data: { position: { increment: 1 } } });
-    const cs = await prisma.caseStudy.create({
+    const caseStudy = await prisma.caseStudy.create({
       data: {
         title,
         metaTitle: metaTitle || null,
@@ -75,10 +88,12 @@ const createCaseStudy = async (req, res) => {
         client: client || null,
         service: service || null,
         category: category || null,
+        videoUrl: videoUrl || null,
+        featured: featured || false,
         position: 0,
-      }
+      },
     });
-    res.status(201).json(cs);
+    res.status(201).json(caseStudy);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -88,20 +103,16 @@ const updateCaseStudy = async (req, res) => {
   try {
     const { id } = req.params;
     const data = req.body;
-    const normalize = (val) => {
-      if (!val) return val;
-      return val.replace(/^https?:\/\/[^/]+/, '');
-    };
     const cleanedData = {
       ...data,
-      largeBanner: data.largeBanner ? normalize(data.largeBanner) : data.largeBanner,
-      smallBanner: data.smallBanner ? normalize(data.smallBanner) : data.smallBanner,
+      largeBanner: normalize(data.largeBanner),
+      smallBanner: normalize(data.smallBanner),
     };
-    const cs = await prisma.caseStudy.update({
+    const caseStudy = await prisma.caseStudy.update({
       where: { id: parseInt(id) },
       data: cleanedData,
     });
-    res.json(cs);
+    res.json(caseStudy);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -110,9 +121,9 @@ const updateCaseStudy = async (req, res) => {
 const deleteCaseStudy = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const cs = await prisma.caseStudy.findUnique({ where: { id } });
-    if (!cs) return res.status(404).json({ message: 'Case study not found' });
-    deleteCaseStudyImageFiles(cs);
+    const caseStudy = await prisma.caseStudy.findUnique({ where: { id } });
+    if (!caseStudy) return res.status(404).json({ message: 'Case study not found' });
+    deleteImageFiles(caseStudy);
     await prisma.caseStudy.delete({ where: { id } });
     res.json({ message: 'Case study deleted successfully' });
   } catch (error) {
@@ -132,8 +143,8 @@ const reorderCaseStudies = async (req, res) => {
         data: { position: parseInt(item.position) },
       });
     }
-    const all = await prisma.caseStudy.findMany({ orderBy: { position: 'asc' } });
-    res.json(all);
+    const allCaseStudies = await prisma.caseStudy.findMany({ orderBy: { position: 'asc' } });
+    res.json(allCaseStudies);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

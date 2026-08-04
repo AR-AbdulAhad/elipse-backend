@@ -1,6 +1,7 @@
 ﻿const prisma = require('../config/prisma');
 const path = require('path');
 const fs = require('fs');
+const { appConfig } = require('../config/appConfig');
 
 const FRONTEND_ASSETS = path.join(__dirname, '../../../frontend/src/assets');
 const STATIC_DIR = path.join(__dirname, '../../uploads/static');
@@ -87,13 +88,13 @@ const staticProjects = [
   { title: 'Architectural Walkthrough', category: 'Animation', path: '/project/arch-walkthrough', image: 'Animation2.webp' },
   { title: 'VR Simu-Lab', category: 'VR', path: '/project/vr-simu-lab', image: 'VR4.webp' },
   { title: 'Urban Planning', category: 'Architecture', path: '/project/urban-planning', image: 'Artictecture3.webp' },
-  { title: 'OFFICE TOUR', category: 'Tour 360', path: '/office-tour/', image: '3601.webp' },
+  { title: 'OFFICE TOUR', category: 'Tour 360', path: `${appConfig.mainSiteUrl}/office-tour/`, image: '3601.webp' },
   { title: 'TOWEL CONFIGURATOR', category: 'Configurator', path: '/project/towel-configurator', image: 'TOWEL.webp' },
   { title: 'Character Rigging', category: 'Animation', path: '/project/character-rigging', image: 'Animation3.webp' },
   { title: 'VR Real Estate', category: 'VR', path: '/project/vr-real-estate', image: 'VR5.webp' },
-  { title: 'CHRISTMAS MARKET TOUR', category: 'Tour 360', path: '/ChristmasMarket_360_Virtual_Tour/', image: '3602.webp' },
+  { title: 'CHRISTMAS MARKET TOUR', category: 'Tour 360', path: `${appConfig.mainSiteUrl}/ChristmasMarket_360_Virtual_Tour/`, image: '3602.webp' },
   { title: 'YACHT CONFIGURATOR', category: 'Configurator', path: '/project/yacht-configurator', image: 'Boat.webp' },
-  { title: 'SCOTT 360 VIRTUAL TOUR', category: 'Tour 360', path: '/scott-360-virtual-tour/', image: '3604.webp' },
+  { title: 'SCOTT 360 VIRTUAL TOUR', category: 'Tour 360', path: `${appConfig.mainSiteUrl}/scott-360-virtual-tour/`, image: '3604.webp' },
   { title: 'Qistmarket', category: 'Web', path: '/project/qistmarket', image: 'Qist-market.webp' },
  ];
 
@@ -121,8 +122,8 @@ const staticBlogs = [
   { title: 'Book Professional Industrial Animation for Your Brand Today', slug: 'industrial-animation', category: 'Animation', date: 'May 06, 2026', image: 'Animation4.webp', excerpt: 'Book professional industrial animation for your brand.', content: '', video: 'mobile.webm' },
   { title: 'The Future of Interactive Product Customization', slug: 'web-based-configurator', category: 'Innovation', date: 'May 02, 2026', image: 'jetour.webp', excerpt: 'The future of interactive product customization.', content: '' },
   { title: 'What Is Immersive AR Marketing in 2026', slug: 'immersive-ar-marketing', category: 'AR/VR', date: 'May 04, 2026', image: 'AR.webp', excerpt: 'What is immersive AR marketing in 2026.', content: '', video: 'Zarrar_1.mp4' },
-  { title: 'Elipse Studio Landing', slug: 'elipse-studio-landing', category: 'Design Inspiration', date: 'Jan 29, 2026', image: 'News1.webp', excerpt: 'Elipse Studio landing page.', content: '' },
-  { title: 'Elipse Studio Architectures', slug: 'elipse-studio-architectures', category: 'Innovation', date: 'Dec 28, 2025', image: 'elipse-artitecture.webp', excerpt: 'Elipse Studio architectures showcase.', content: '' },
+  { title: `${appConfig.name} Landing`, slug: 'elipse-studio-landing', category: 'Design Inspiration', date: 'Jan 29, 2026', image: 'News1.webp', excerpt: `${appConfig.name} landing page.`, content: '' },
+  { title: `${appConfig.name} Architectures`, slug: 'elipse-studio-architectures', category: 'Innovation', date: 'Dec 28, 2025', image: 'elipse-artitecture.webp', excerpt: `${appConfig.name} architectures showcase.`, content: '' },
  ];
 
 const copyImages = () => {
