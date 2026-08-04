@@ -4,7 +4,7 @@ const fs = require('fs');
 
 const baseUploadDir = process.env.UPLOADS_PATH || path.resolve(__dirname, '../../uploads');
 
-['blogs', 'projects', 'reviews'].forEach(sub => {
+['blogs', 'projects', 'reviews', 'case-studies'].forEach(sub => {
   const dir = path.join(baseUploadDir, sub);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });

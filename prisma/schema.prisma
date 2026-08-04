@@ -119,3 +119,20 @@ model Blog {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model CaseStudy {
+  id              Int      @id @default(autoincrement())
+  title           String
+  metaTitle       String?
+  metaDescription String?  @db.Text
+  slug            String   @unique
+  largeBanner     String
+  smallBanner     String?
+  content         String   @default("") @db.Text
+  client          String?
+  service         String?
+  category        String?
+  position        Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
