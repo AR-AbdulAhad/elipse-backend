@@ -127,7 +127,12 @@ app.use(cors(corsOptions));
 // proper Access-Control-Allow-Origin / Allow-Credentials / Allow-Methods headers.
 app.options('*', cors(corsOptions));
 
-app.use(express.json());
+// Hostinger's CDN (hcdn) rejects any request whose Content-Type is
+// application/json and carries a body (returns 400 "Bad Request" HTML).
+// The frontend sends JSON bodies as text/plain to bypass that, so the
+// JSON parser must also accept text/plain bodies here. application/json
+// is kept for non-Hostinger deployments and external clients.
+app.use(express.json({ type: ['application/json', 'text/plain'] }));
 
 // ── Health Check ────────────────────────────────────────────────────────────
 app.get('/status', (req, res) => {
