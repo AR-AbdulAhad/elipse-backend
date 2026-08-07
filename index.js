@@ -127,12 +127,28 @@ app.use(cors(corsOptions));
 // proper Access-Control-Allow-Origin / Allow-Credentials / Allow-Methods headers.
 app.options('*', cors(corsOptions));
 
-// Hostinger's CDN (hcdn) rejects any request whose Content-Type is
-// application/json and carries a body (returns 400 "Bad Request" HTML).
-// The frontend sends JSON bodies as text/plain to bypass that, so the
-// JSON parser must also accept text/plain bodies here. application/json
-// is kept for non-Hostinger deployments and external clients.
-app.use(express.json({ type: ['application/json', 'text/plain'] }));
+// Hostinger's Node-hosting wrapper + CDN reject request bodies whose
+// Content-Type is application/json or text/plain — they return a 400
+// "Bad Request" HTML page before the request reaches Express. Only
+// urlencoded form bodies and multipart pass through reliably.
+// The frontend therefore sends every JSON payload as a urlencoded
+// `data` field (data=<urlencoded JSON>). It's decoded here and written
+// back into req.body, so controllers keep receiving req.body as the
+// original JSON object. application/json is still supported for
+// non-Hostinger deployments and external API clients.
+app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use((req, res, next) => {
+  const isUrlEncoded = (req.headers['content-type'] || '').includes('application/x-www-form-urlencoded');
+  if (isUrlEncoded && typeof req.body?.data === 'string') {
+    try {
+      req.body = JSON.parse(req.body.data);
+    } catch {
+      // Invalid JSON — leave req.body as the parsed form object.
+    }
+  }
+  next();
+});
 
 // ── Health Check ────────────────────────────────────────────────────────────
 app.get('/status', (req, res) => {
