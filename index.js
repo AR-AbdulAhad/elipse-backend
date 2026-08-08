@@ -275,8 +275,14 @@ app.get('/blog/:slug', async (req, res, next) => {
     const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return `${siteUrl}${appConfig.ogImagePath}`;
-      if (val.startsWith('http')) return val;
-      return `${baseUrl}${val.startsWith('/') ? val : '/' + val}`;
+      if (val.startsWith('http')) {
+        // Replace any staging CDN domain with production site URL
+        if (val.includes('mediumseagreen-crocodile-699024.hostingersite.com')) {
+          return val.replace('https://mediumseagreen-crocodile-699024.hostingersite.com', siteUrl);
+        }
+        return val;
+      }
+      return `${siteUrl}${val.startsWith('/') ? val : '/' + val}`;
     };
 
     if (!blog) {
@@ -342,8 +348,14 @@ app.get('/project/:path(*)', async (req, res, next) => {
     const baseUrl = (process.env.VITE_BACKEND_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
     const buildUrl = (val) => {
       if (!val) return `${siteUrl}${appConfig.ogImagePath}`;
-      if (val.startsWith('http')) return val;
-      return `${baseUrl}${val.startsWith('/') ? val : '/' + val}`;
+      if (val.startsWith('http')) {
+        // Replace any staging CDN domain with production site URL
+        if (val.includes('mediumseagreen-crocodile-699024.hostingersite.com')) {
+          return val.replace('https://mediumseagreen-crocodile-699024.hostingersite.com', siteUrl);
+        }
+        return val;
+      }
+      return `${siteUrl}${val.startsWith('/') ? val : '/' + val}`;
     };
 
     if (!project) {

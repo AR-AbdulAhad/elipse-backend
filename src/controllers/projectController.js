@@ -21,22 +21,28 @@ const deleteProjectImageFiles = (record) => {
   });
 };
 
-const getBaseUrl = (req) => {
-  return (process.env.VITE_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+// Always build image URLs relative to the production frontend (elipsestudio.com)
+// so they are served through the Next.js /uploads/* proxy rewrite.
+const getBaseUrl = () => {
+  return (process.env.ELIPSE_SITE_URL || process.env.SITE_URL || 'https://elipsestudio.com').replace(/\/+$/, '');
 };
 
-const buildUrl = (val, req) => {
+const buildUrl = (val) => {
   if (!val) return val;
-  if (val.startsWith('http')) return val;
+  if (val.startsWith('http')) {
+    const pathMatch = val.match(/^https?:\/\/[^/]+(\/.*)$/);
+    const p = pathMatch ? pathMatch[1] : val;
+    return `${getBaseUrl()}${p}`;
+  }
   const p = val.startsWith('/') ? val : `/${val}`;
-  return `${getBaseUrl(req)}${p}`;
+  return `${getBaseUrl()}${p}`;
 };
 
-const fixSections = (sections, req) => {
+const fixSections = (sections) => {
   if (!sections) return sections;
   try {
     const arr = JSON.parse(sections);
-    return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image, req) : s.image })));
+    return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
   } catch { return sections; }
 };
 
@@ -45,10 +51,10 @@ const getProjects = async (req, res) => {
     const allProjects = await prisma.project.findMany({ orderBy: { position: 'asc' } });
     const projectsWithUrls = allProjects.map(p => ({
       ...p,
-      image: p.image ? buildUrl(p.image, req) : p.image,
-      heroImage: p.heroImage ? buildUrl(p.heroImage, req) : p.heroImage,
-      video: p.video ? buildUrl(p.video, req) : p.video,
-      sections: fixSections(p.sections, req),
+      image: p.image ? buildUrl(p.image) : p.image,
+      heroImage: p.heroImage ? buildUrl(p.heroImage) : p.heroImage,
+      video: p.video ? buildUrl(p.video) : p.video,
+      sections: fixSections(p.sections),
     }));
     return res.json(projectsWithUrls);
   } catch (error) {
@@ -63,10 +69,10 @@ const getProjectByPath = async (req, res) => {
     if (!project) return res.status(404).json({ message: 'Project not found' });
     const projectWithUrls = {
       ...project,
-      image: project.image ? buildUrl(project.image, req) : project.image,
-      heroImage: project.heroImage ? buildUrl(project.heroImage, req) : project.heroImage,
-      video: project.video ? buildUrl(project.video, req) : project.video,
-      sections: fixSections(project.sections, req),
+      image: project.image ? buildUrl(project.image) : project.image,
+      heroImage: project.heroImage ? buildUrl(project.heroImage) : project.heroImage,
+      video: project.video ? buildUrl(project.video) : project.video,
+      sections: fixSections(project.sections),
     };
     return res.json(projectWithUrls);
   } catch (error) {

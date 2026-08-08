@@ -4,15 +4,21 @@ const path = require('path');
 
 const uploadsDir = path.resolve(__dirname, '../../uploads');
 
-const getBaseUrl = (req) => {
-  return (process.env.VITE_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+// Always build image URLs relative to the production frontend (elipsestudio.com)
+// so they are served through the Next.js /uploads/* proxy rewrite.
+const getBaseUrl = () => {
+  return (process.env.ELIPSE_SITE_URL || process.env.SITE_URL || 'https://elipsestudio.com').replace(/\/+$/, '');
 };
 
-const buildUrl = (val, req) => {
+const buildUrl = (val) => {
   if (!val) return val;
-  if (val.startsWith('http')) return val;
+  if (val.startsWith('http')) {
+    const pathMatch = val.match(/^https?:\/\/[^/]+(\/.*)$/);
+    const p = pathMatch ? pathMatch[1] : val;
+    return `${getBaseUrl()}${p}`;
+  }
   const p = val.startsWith('/') ? val : `/${val}`;
-  return `${getBaseUrl(req)}${p}`;
+  return `${getBaseUrl()}${p}`;
 };
 
 const normalize = (val) => {
@@ -20,10 +26,10 @@ const normalize = (val) => {
   return val.replace(/^https?:\/\/[^/]+/, '');
 };
 
-const withUrls = (caseStudy, req) => ({
+const withUrls = (caseStudy) => ({
   ...caseStudy,
-  largeBanner: caseStudy.largeBanner ? buildUrl(caseStudy.largeBanner, req) : caseStudy.largeBanner,
-  smallBanner: caseStudy.smallBanner ? buildUrl(caseStudy.smallBanner, req) : caseStudy.smallBanner,
+  largeBanner: caseStudy.largeBanner ? buildUrl(caseStudy.largeBanner) : caseStudy.largeBanner,
+  smallBanner: caseStudy.smallBanner ? buildUrl(caseStudy.smallBanner) : caseStudy.smallBanner,
 });
 
 const deleteImageFiles = (record) => {
@@ -43,7 +49,7 @@ const getCaseStudies = async (req, res) => {
       where: featured === 'true' ? { featured: true } : undefined,
       orderBy: { position: 'asc' },
     });
-    res.json(caseStudies.map(cs => withUrls(cs, req)));
+    res.json(caseStudies.map(cs => withUrls(cs)));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -53,7 +59,7 @@ const getCaseStudyBySlug = async (req, res) => {
   try {
     const caseStudy = await prisma.caseStudy.findUnique({ where: { slug: req.query.slug } });
     if (!caseStudy) return res.status(404).json({ message: 'Case study not found' });
-    res.json(withUrls(caseStudy, req));
+    res.json(withUrls(caseStudy));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

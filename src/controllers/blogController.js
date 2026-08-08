@@ -4,22 +4,30 @@ const path = require('path');
 
 const uploadsDir = path.resolve(__dirname, '../../uploads');
 
-const getBaseUrl = (req) => {
-  return (process.env.VITE_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+// Always build image URLs relative to the production frontend (elipsestudio.com)
+// so they are served through the Next.js /uploads/* proxy rewrite.
+// This decouples image URLs from whichever backend domain is active.
+const getBaseUrl = () => {
+  return (process.env.ELIPSE_SITE_URL || process.env.SITE_URL || 'https://elipsestudio.com').replace(/\/+$/, '');
 };
 
-const buildUrl = (val, req) => {
+const buildUrl = (val) => {
   if (!val) return val;
-  if (val.startsWith('http')) return val;
+  if (val.startsWith('http')) {
+    // Strip any domain prefix so we always use production domain
+    const pathMatch = val.match(/^https?:\/\/[^/]+(\/.*)$/);
+    const p = pathMatch ? pathMatch[1] : val;
+    return `${getBaseUrl()}${p}`;
+  }
   const p = val.startsWith('/') ? val : `/${val}`;
-  return `${getBaseUrl(req)}${p}`;
+  return `${getBaseUrl()}${p}`;
 };
 
-const fixSections = (sections, req) => {
+const fixSections = (sections) => {
   if (!sections) return sections;
   try {
     const arr = JSON.parse(sections);
-    return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image, req) : s.image })));
+    return JSON.stringify(arr.map(s => ({ ...s, image: s.image ? buildUrl(s.image) : s.image })));
   } catch { return sections; }
 };
 
@@ -53,11 +61,11 @@ const getBlogs = async (req, res) => {
     const blogs = await prisma.blog.findMany({ orderBy: { position: 'asc' } });
     const blogsWithUrls = blogs.map(b => ({
       ...b,
-      image: b.image ? buildUrl(b.image, req) : b.image,
-      image2: b.image2 ? buildUrl(b.image2, req) : b.image2,
-      image3: b.image3 ? buildUrl(b.image3, req) : b.image3,
-      image4: b.image4 ? buildUrl(b.image4, req) : b.image4,
-      sections: fixSections(b.sections, req),
+      image: b.image ? buildUrl(b.image) : b.image,
+      image2: b.image2 ? buildUrl(b.image2) : b.image2,
+      image3: b.image3 ? buildUrl(b.image3) : b.image3,
+      image4: b.image4 ? buildUrl(b.image4) : b.image4,
+      sections: fixSections(b.sections),
     }));
     res.json(blogsWithUrls);
   } catch (error) {
@@ -71,11 +79,11 @@ const getBlogBySlug = async (req, res) => {
     if (!blog) return res.status(404).json({ message: 'Blog not found' });
     res.json({
       ...blog,
-      image: blog.image ? buildUrl(blog.image, req) : blog.image,
-      image2: blog.image2 ? buildUrl(blog.image2, req) : blog.image2,
-      image3: blog.image3 ? buildUrl(blog.image3, req) : blog.image3,
-      image4: blog.image4 ? buildUrl(blog.image4, req) : blog.image4,
-      sections: fixSections(blog.sections, req),
+      image: blog.image ? buildUrl(blog.image) : blog.image,
+      image2: blog.image2 ? buildUrl(blog.image2) : blog.image2,
+      image3: blog.image3 ? buildUrl(blog.image3) : blog.image3,
+      image4: blog.image4 ? buildUrl(blog.image4) : blog.image4,
+      sections: fixSections(blog.sections),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
