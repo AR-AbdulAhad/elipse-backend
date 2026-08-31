@@ -23,7 +23,6 @@ const buildUrl = (val) => {
 
 const normalize = (val) => {
   if (!val) return val;
-  if (/youtube\.com|youtu\.be/i.test(val)) return val;
   return val.replace(/^https?:\/\/[^/]+/, '');
 };
 
@@ -31,14 +30,12 @@ const withUrls = (caseStudy) => ({
   ...caseStudy,
   largeBanner: caseStudy.largeBanner ? buildUrl(caseStudy.largeBanner) : caseStudy.largeBanner,
   smallBanner: caseStudy.smallBanner ? buildUrl(caseStudy.smallBanner) : caseStudy.smallBanner,
-  heroImage: caseStudy.heroImage ? buildUrl(caseStudy.heroImage) : caseStudy.heroImage,
 });
 
 const deleteImageFiles = (record) => {
   const paths = [];
   if (record.largeBanner) paths.push(record.largeBanner.replace(/^https?:\/\/[^/]+/, ''));
   if (record.smallBanner) paths.push(record.smallBanner.replace(/^https?:\/\/[^/]+/, ''));
-  if (record.heroImage && record.heroImage !== record.largeBanner) paths.push(record.heroImage.replace(/^https?:\/\/[^/]+/, ''));
   paths.forEach((filePath) => {
     const absPath = path.join(uploadsDir, filePath.replace(/^\/uploads\//, ''));
     try { fs.unlinkSync(absPath); } catch {}
@@ -77,24 +74,10 @@ const createCaseStudy = async (req, res) => {
       slug,
       largeBanner,
       smallBanner,
-      heroImage,
-      heroVideo,
       content,
       client,
       service,
       category,
-      duration,
-      deliverables,
-      overviewHeading,
-      overviewText,
-      challengeHeading,
-      challengeText,
-      results,
-      processSteps,
-      galleryCategories,
-      videoTabs,
-      ctaUrl,
-      ctaText,
       videoUrl,
       featured,
     } = req.body;
@@ -107,24 +90,10 @@ const createCaseStudy = async (req, res) => {
         slug,
         largeBanner: normalize(largeBanner),
         smallBanner: normalize(smallBanner),
-        heroImage: normalize(heroImage),
-        heroVideo: normalize(heroVideo),
         content: content || '',
         client: client || null,
         service: service || null,
         category: category || null,
-        duration: duration || null,
-        deliverables: deliverables || null,
-        overviewHeading: overviewHeading || null,
-        overviewText: overviewText || null,
-        challengeHeading: challengeHeading || null,
-        challengeText: challengeText || null,
-        results: results || '[]',
-        processSteps: processSteps || '[]',
-        galleryCategories: galleryCategories || '[]',
-        videoTabs: videoTabs || '[]',
-        ctaUrl: ctaUrl || null,
-        ctaText: ctaText || null,
         videoUrl: videoUrl || null,
         featured: featured || false,
         position: 0,
@@ -139,61 +108,11 @@ const createCaseStudy = async (req, res) => {
 const updateCaseStudy = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      title,
-      metaTitle,
-      metaDescription,
-      slug,
-      largeBanner,
-      smallBanner,
-      heroImage,
-      heroVideo,
-      content,
-      client,
-      service,
-      category,
-      duration,
-      deliverables,
-      overviewHeading,
-      overviewText,
-      challengeHeading,
-      challengeText,
-      results,
-      processSteps,
-      galleryCategories,
-      videoTabs,
-      ctaUrl,
-      ctaText,
-      videoUrl,
-      featured,
-    } = req.body;
+    const data = req.body;
     const cleanedData = {
-      ...(title !== undefined && { title }),
-      ...(metaTitle !== undefined && { metaTitle: metaTitle || null }),
-      ...(metaDescription !== undefined && { metaDescription: metaDescription || null }),
-      ...(slug !== undefined && { slug }),
-      ...(largeBanner !== undefined && { largeBanner: normalize(largeBanner) }),
-      ...(smallBanner !== undefined && { smallBanner: normalize(smallBanner) }),
-      ...(heroImage !== undefined && { heroImage: normalize(heroImage) }),
-      ...(heroVideo !== undefined && { heroVideo: normalize(heroVideo) }),
-      ...(content !== undefined && { content }),
-      ...(client !== undefined && { client: client || null }),
-      ...(service !== undefined && { service: service || null }),
-      ...(category !== undefined && { category: category || null }),
-      ...(duration !== undefined && { duration: duration || null }),
-      ...(deliverables !== undefined && { deliverables: deliverables || null }),
-      ...(overviewHeading !== undefined && { overviewHeading: overviewHeading || null }),
-      ...(overviewText !== undefined && { overviewText: overviewText || null }),
-      ...(challengeHeading !== undefined && { challengeHeading: challengeHeading || null }),
-      ...(challengeText !== undefined && { challengeText: challengeText || null }),
-      ...(results !== undefined && { results: results || '[]' }),
-      ...(processSteps !== undefined && { processSteps: processSteps || '[]' }),
-      ...(galleryCategories !== undefined && { galleryCategories: galleryCategories || '[]' }),
-      ...(videoTabs !== undefined && { videoTabs: videoTabs || '[]' }),
-      ...(ctaUrl !== undefined && { ctaUrl: ctaUrl || null }),
-      ...(ctaText !== undefined && { ctaText: ctaText || null }),
-      ...(videoUrl !== undefined && { videoUrl: videoUrl || null }),
-      ...(featured !== undefined && { featured: !!featured }),
+      ...data,
+      largeBanner: normalize(data.largeBanner),
+      smallBanner: normalize(data.smallBanner),
     };
     const caseStudy = await prisma.caseStudy.update({
       where: { id: parseInt(id) },
