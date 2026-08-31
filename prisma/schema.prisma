@@ -99,23 +99,46 @@ model SocialMedia {
   updatedAt   DateTime @updatedAt
 }
 
+model Media {
+  id        Int      @id @default(autoincrement())
+  filename  String
+  mimeType  String
+  folder    String   @default("blogs")
+  data      Bytes    @db.LongBlob
+  createdAt DateTime @default(now())
+}
+
 model CaseStudy {
-  id              Int      @id @default(autoincrement())
-  title           String
-  metaTitle       String?
-  metaDescription String?  @db.Text
-  slug            String   @unique
-  largeBanner     String?
-  smallBanner     String?
-  content         String   @default("") @db.Text
-  client          String?
-  service         String?
-  category        String?
-  videoUrl        String?
-  featured        Boolean  @default(false)
-  position        Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  title             String
+  metaTitle         String?
+  metaDescription   String?  @db.Text
+  slug              String   @unique
+  largeBanner       String?
+  smallBanner       String?
+  heroImage         String?
+  heroVideo         String?
+  content           String   @default("") @db.Text
+  client            String?
+  service           String?
+  category          String?
+  duration          String?
+  deliverables      String?
+  overviewHeading   String?
+  overviewText      String?  @db.Text
+  challengeHeading  String?
+  challengeText     String?  @db.Text
+  results           String?  @default("[]") @db.Text
+  processSteps      String?  @default("[]") @db.Text
+  galleryCategories String?  @default("[]") @db.Text
+  videoTabs         String?  @default("[]") @db.Text
+  ctaUrl            String?
+  ctaText           String?
+  videoUrl          String?
+  featured          Boolean  @default(false)
+  position          Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Blog {

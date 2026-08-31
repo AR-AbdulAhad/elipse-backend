@@ -161,8 +161,14 @@ app.get('/status', (req, res) => {
 });
 
 // ── Uploaded Files ──────────────────────────────────────────────────────────
+// Legacy files still on local disk (kept for backward compatibility — new
+// uploads are stored in the database instead, since local disk does not
+// survive a redeploy).
 const uploadsDir = process.env.UPLOADS_PATH || path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadsDir));
+
+const { getMedia } = require('./src/controllers/uploadController');
+app.get('/media/:id', getMedia);
 
 // ── API Routes ──────────────────────────────────────────────────────────────
 app.use('/api/contact', contactRoutes);
