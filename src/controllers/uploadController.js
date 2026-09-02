@@ -72,13 +72,16 @@ const MAX_CACHE_ENTRIES = 500;
 
 const getMedia = async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const rawParam = req.params.id || req.params[0] || req.params.filename || '';
+    const match = String(rawParam).match(/(\d+)/);
+    if (!match) return res.status(404).send('Not found');
+    const id = parseInt(match[1], 10);
     if (isNaN(id)) return res.status(404).send('Not found');
 
     // 1. Check RAM Cache first
     if (mediaCache.has(id)) {
       const cached = mediaCache.get(id);
-      res.set('Content-Type', cached.mimeType);
+      res.set('Content-Type', cached.mimeType || 'image/webp');
       res.set('Cache-Control', 'public, max-age=31536000, immutable');
       res.set('X-Cache', 'HIT');
       return res.end(cached.data);
@@ -99,9 +102,9 @@ const getMedia = async (req, res) => {
       const firstKey = mediaCache.keys().next().value;
       mediaCache.delete(firstKey);
     }
-    mediaCache.set(id, { mimeType: media.mimeType, data: buffer });
+    mediaCache.set(id, { mimeType: media.mimeType || 'image/webp', data: buffer });
 
-    res.set('Content-Type', media.mimeType);
+    res.set('Content-Type', media.mimeType || 'image/webp');
     res.set('Cache-Control', 'public, max-age=31536000, immutable');
     res.set('X-Cache', 'MISS');
     res.end(buffer);
